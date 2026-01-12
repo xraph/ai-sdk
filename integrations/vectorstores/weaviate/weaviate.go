@@ -1,9 +1,19 @@
+//go:build weaviate
+// +build weaviate
+
 package weaviate
 
 import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/weaviate/weaviate-go-client/v4/weaviate"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/auth"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
+	"github.com/weaviate/weaviate/entities/models"
+	"github.com/weaviate/weaviate/entities/replication"
 
 	sdk "github.com/xraph/ai-sdk"
 	logger "github.com/xraph/go-utils/log"

@@ -60,8 +60,9 @@ func NewPgVectorStore(ctx context.Context, cfg Config) (*PgVectorStore, error) {
 		return nil, fmt.Errorf("failed to parse connection string: %w", err)
 	}
 
-	poolConfig.MaxConns = int32(cfg.MaxConns)
-	poolConfig.MinConns = int32(cfg.MinConns)
+	// Safe conversion since MaxConns and MinConns are reasonable connection pool sizes
+	poolConfig.MaxConns = int32(cfg.MaxConns)   // #nosec G115 - connection pool size is always reasonable
+	poolConfig.MinConns = int32(cfg.MinConns)   // #nosec G115 - connection pool size is always reasonable
 	poolConfig.MaxConnLifetime = 1 * time.Hour
 	poolConfig.MaxConnIdleTime = 30 * time.Minute
 
