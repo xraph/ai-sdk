@@ -852,10 +852,10 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 💬 Support
 
-- 📧 Email: support@forge.dev
-- 💬 Discord: [Join our community](https://discord.gg/forge)
-- 📖 Docs: [forge.dev/docs](https://forge.dev/docs)
+- 📧 Email: rex@xraph.com
+- 💬 Discord: [Join our community](https://discord.gg/xraph)
+- 📖 Docs: [forge.xraph.com/docs](https://forge.xraph.com/docs)
 
 ---
 
-**Built with ❤️ by the Forge Team**
+**Built with ❤️ by the XRaph Team**
