@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/xraph/ai-sdk/integrations/statestores/postgres"
 	"github.com/xraph/ai-sdk/integrations/statestores/redis"
-	"github.com/redis/go-redis/v9"
 )
 
 func TestPostgresStateStoreIntegration(t *testing.T) {
@@ -111,4 +111,3 @@ func TestRedisStateStoreIntegration(t *testing.T) {
 	// Run standard tests
 	TestStateStoreOperations(t, store)
 }
-

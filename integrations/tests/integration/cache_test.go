@@ -84,4 +84,3 @@ func TestRedisCacheIntegration(t *testing.T) {
 		}
 	})
 }
-

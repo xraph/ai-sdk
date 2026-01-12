@@ -231,4 +231,3 @@ func TestCacheStoreOperations(t *testing.T, store sdk.CacheStore) {
 		}
 	})
 }
-
