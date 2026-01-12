@@ -39,17 +39,17 @@ func ParseBenchmarkOutput(r io.Reader) ([]BenchmarkResult, error) {
 			Name: matches[1],
 		}
 
-		fmt.Sscanf(matches[2], "%d", &result.Iterations)
-		fmt.Sscanf(matches[3], "%f", &result.NsPerOp)
+		_, _ = fmt.Sscanf(matches[2], "%d", &result.Iterations)
+		_, _ = fmt.Sscanf(matches[3], "%f", &result.NsPerOp)
 
 		if matches[4] != "" {
-			fmt.Sscanf(matches[4], "%f", &result.MBPerSec)
+			_, _ = fmt.Sscanf(matches[4], "%f", &result.MBPerSec)
 		}
 		if matches[5] != "" {
-			fmt.Sscanf(matches[5], "%d", &result.BytesPerOp)
+			_, _ = fmt.Sscanf(matches[5], "%d", &result.BytesPerOp)
 		}
 		if matches[6] != "" {
-			fmt.Sscanf(matches[6], "%d", &result.AllocsPerOp)
+			_, _ = fmt.Sscanf(matches[6], "%d", &result.AllocsPerOp)
 		}
 
 		results = append(results, result)

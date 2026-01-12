@@ -2,7 +2,8 @@ package sdk
 
 import (
 	"context"
-	"math/rand"
+	"crypto/rand"
+	"encoding/binary"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -547,7 +548,7 @@ func (b *WeightedBalancer) Select(providers []string) string {
 	}
 
 	// Random selection based on weights
-	r := rand.Intn(totalWeight)
+	r := secureRandInt(totalWeight)
 	cumulative := 0
 
 	for _, p := range providers {
@@ -694,7 +695,7 @@ func (b *RandomBalancer) Select(providers []string) string {
 		return ""
 	}
 
-	return providers[rand.Intn(len(providers))]
+	return providers[secureRandInt(len(providers))]
 }
 
 // RecordLatency implements LoadBalancer (no-op).
@@ -702,3 +703,20 @@ func (b *RandomBalancer) RecordLatency(provider string, latency time.Duration) {
 
 // RecordError implements LoadBalancer (no-op).
 func (b *RandomBalancer) RecordError(provider string) {}
+
+// secureRandInt returns a cryptographically secure random integer in [0, n).
+// Falls back to 0 on error (should not happen in normal conditions).
+func secureRandInt(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return 0
+	}
+	// Use modulo on uint64, then safely convert to int
+	randUint64 := binary.BigEndian.Uint64(b[:])
+	result := randUint64 % uint64(n)
+	// Safe conversion since result < n and n is an int
+	return int(result) // #nosec G115 - result is always < n which fits in int
+}

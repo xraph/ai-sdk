@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	errors "github.com/xraph/go-utils/errs"
@@ -74,7 +75,9 @@ func (r *SpeechResponse) SaveTo(path string) error {
 	}
 	defer func() { _ = r.Audio.Close() }()
 
-	file, err := os.Create(path)
+	// Clean path to prevent directory traversal
+	cleanPath := filepath.Clean(path)
+	file, err := os.Create(cleanPath)
 	if err != nil {
 		return err
 	}

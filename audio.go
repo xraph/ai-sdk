@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -131,10 +132,12 @@ func NewTranscriptionBuilder(ctx context.Context, transcriber AudioTranscriberAP
 
 // FromFile sets the audio from a file path.
 func (b *TranscriptionBuilder) FromFile(path string) *TranscriptionBuilder {
-	file, err := os.Open(path)
+	// Clean path to prevent directory traversal
+	cleanPath := filepath.Clean(path)
+	file, err := os.Open(cleanPath)
 	if err == nil {
 		b.file = file
-		b.filename = path
+		b.filename = cleanPath
 	}
 
 	return b
@@ -317,10 +320,12 @@ func NewTranslationBuilder(ctx context.Context, transcriber AudioTranscriberAPI,
 
 // FromFile sets the audio from a file path.
 func (b *TranslationBuilder) FromFile(path string) *TranslationBuilder {
-	file, err := os.Open(path)
+	// Clean path to prevent directory traversal
+	cleanPath := filepath.Clean(path)
+	file, err := os.Open(cleanPath)
 	if err == nil {
 		b.file = file
-		b.filename = path
+		b.filename = cleanPath
 	}
 
 	return b

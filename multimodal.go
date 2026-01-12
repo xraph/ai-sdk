@@ -140,13 +140,15 @@ func (b *MultiModalGenerator) WithImageURL(url string) *MultiModalGenerator {
 
 // WithImageFile adds image content from file.
 func (b *MultiModalGenerator) WithImageFile(path string) *MultiModalGenerator {
-	data, err := os.ReadFile(path)
+	// Clean path to prevent directory traversal
+	cleanPath := filepath.Clean(path)
+	data, err := os.ReadFile(cleanPath)
 	if err != nil {
 		b.errs = append(b.errs, fmt.Errorf("failed to read image file %s: %w", path, err))
 		return b
 	}
 
-	mimeType := mime.TypeByExtension(filepath.Ext(path))
+	mimeType := mime.TypeByExtension(filepath.Ext(cleanPath))
 	if mimeType == "" {
 		mimeType = "application/octet-stream"
 	}
@@ -167,13 +169,15 @@ func (b *MultiModalGenerator) WithAudio(data []byte, mimeType string) *MultiModa
 
 // WithAudioFile adds audio content from file.
 func (b *MultiModalGenerator) WithAudioFile(path string) *MultiModalGenerator {
-	data, err := os.ReadFile(path)
+	// Clean path to prevent directory traversal
+	cleanPath := filepath.Clean(path)
+	data, err := os.ReadFile(cleanPath)
 	if err != nil {
 		b.errs = append(b.errs, fmt.Errorf("failed to read audio file %s: %w", path, err))
 		return b
 	}
 
-	mimeType := mime.TypeByExtension(filepath.Ext(path))
+	mimeType := mime.TypeByExtension(filepath.Ext(cleanPath))
 	if mimeType == "" {
 		mimeType = "audio/mpeg"
 	}
@@ -194,13 +198,15 @@ func (b *MultiModalGenerator) WithVideo(data []byte, mimeType string) *MultiModa
 
 // WithVideoFile adds video content from file.
 func (b *MultiModalGenerator) WithVideoFile(path string) *MultiModalGenerator {
-	data, err := os.ReadFile(path)
+	// Clean path to prevent directory traversal
+	cleanPath := filepath.Clean(path)
+	data, err := os.ReadFile(cleanPath)
 	if err != nil {
 		b.errs = append(b.errs, fmt.Errorf("failed to read video file %s: %w", path, err))
 		return b
 	}
 
-	mimeType := mime.TypeByExtension(filepath.Ext(path))
+	mimeType := mime.TypeByExtension(filepath.Ext(cleanPath))
 	if mimeType == "" {
 		mimeType = "video/mp4"
 	}

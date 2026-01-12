@@ -2,12 +2,13 @@ package sdk
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"regexp"
 	"strings"
 	"sync"
@@ -392,7 +393,7 @@ func (ptm *PromptTemplateManager) CreateABTest(test *ABTest) error {
 
 // selectABVariant selects a variant based on traffic weights.
 func (ptm *PromptTemplateManager) selectABVariant(test *ABTest) (*PromptTemplate, error) {
-	r := rand.Float64()
+	r := secureRandFloat64()
 	cumulative := 0.0
 
 	for _, variant := range test.Variants {
@@ -634,4 +635,14 @@ func (ptm *PromptTemplateManager) ValidateVariables(name, version string, vars m
 	}
 
 	return nil
+}
+
+// secureRandFloat64 returns a cryptographically secure random float64 in [0.0, 1.0).
+func secureRandFloat64() float64 {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return 0.0
+	}
+	// Convert to float64 in range [0, 1)
+	return float64(binary.BigEndian.Uint64(b[:])) / float64(1<<64)
 }
