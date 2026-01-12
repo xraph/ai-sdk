@@ -1,4 +1,4 @@
-# 🚀 Forge AI SDK
+# 🚀 AI SDK
 
 > **Enterprise-Grade AI SDK for Go** - Zero-Cost Guardrails, Native Concurrency, Production-First
 
