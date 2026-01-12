@@ -9,7 +9,7 @@ import (
 // This allows different reasoning patterns (ReAct, Plan-Execute, etc.) to be plugged in.
 type ExecutionStrategy interface {
 	// Execute runs the strategy with the given agent and input
-	Execute(ctx context.Context, agent *EnhancedAgent, input string) (*AgentExecution, error)
+	Execute(ctx context.Context, agent *Agent, input string) (*AgentExecution, error)
 
 	// Name returns the strategy name
 	Name() string

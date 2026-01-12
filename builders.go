@@ -33,6 +33,11 @@ type AgentBuilder struct {
 	guardrails     *GuardrailManager
 	handoffManager *HandoffManager
 	callbacks      AgentCallbacks
+
+	// Enhanced execution control
+	stopConditions []StepCondition
+	preparers      []StepPreparer
+	stepCallbacks  []StepCallback
 }
 
 // NewAgentBuilder creates a new agent builder.
@@ -220,6 +225,32 @@ func (b *AgentBuilder) OnError(fn func(error)) *AgentBuilder {
 	return b
 }
 
+// StopWhen adds a stop condition.
+func (b *AgentBuilder) StopWhen(condition StepCondition) *AgentBuilder {
+	b.stopConditions = append(b.stopConditions, condition)
+
+	return b
+}
+
+// PrepareStep adds a step preparer.
+func (b *AgentBuilder) PrepareStep(preparer StepPreparer) *AgentBuilder {
+	b.preparers = append(b.preparers, preparer)
+
+	return b
+}
+
+// OnStep adds a step callback.
+func (b *AgentBuilder) OnStep(callback StepCallback) *AgentBuilder {
+	b.stepCallbacks = append(b.stepCallbacks, callback)
+
+	return b
+}
+
+// MaxSteps is a convenience method for setting max steps as a stop condition.
+func (b *AgentBuilder) MaxSteps(max int) *AgentBuilder {
+	return b.StopWhen(StopOnMaxSteps(max))
+}
+
 // validate validates the builder configuration.
 func (b *AgentBuilder) validate() error {
 	if b.id == "" {
@@ -273,6 +304,12 @@ func (b *AgentBuilder) Build() (*Agent, error) {
 	agent.Description = b.description
 	agent.Model = b.model
 	agent.Provider = b.provider
+
+	// Set enhanced execution features
+	agent.stopConditions = b.stopConditions
+	agent.preparers = b.preparers
+	agent.stepCallbacks = b.stepCallbacks
+	agent.history = NewStepHistory()
 
 	// If handoff manager is provided and we have sub-agents, add handoff tools
 	if b.handoffManager != nil && len(b.subAgents) > 0 {

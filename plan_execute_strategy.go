@@ -93,7 +93,7 @@ func NewPlanExecuteStrategy(logger logger.Logger, metrics metrics.Metrics, confi
 }
 
 // Execute runs the Plan-Execute strategy.
-func (s *PlanExecuteStrategy) Execute(ctx context.Context, agent *EnhancedAgent, input string) (*AgentExecution, error) {
+func (s *PlanExecuteStrategy) Execute(ctx context.Context, agent *Agent, input string) (*AgentExecution, error) {
 	startTime := time.Now()
 
 	// Create execution context with timeout
@@ -224,7 +224,7 @@ func (s *PlanExecuteStrategy) Execute(ctx context.Context, agent *EnhancedAgent,
 }
 
 // createPlan generates a plan for the given task.
-func (s *PlanExecuteStrategy) createPlan(ctx context.Context, agent *EnhancedAgent, task string) (*Plan, error) {
+func (s *PlanExecuteStrategy) createPlan(ctx context.Context, agent *Agent, task string) (*Plan, error) {
 	// Build planning prompt
 	prompt := s.buildPlanningPrompt(task, agent.tools)
 
@@ -270,7 +270,7 @@ func (s *PlanExecuteStrategy) createPlan(ctx context.Context, agent *EnhancedAge
 }
 
 // executePlan executes all steps in the plan.
-func (s *PlanExecuteStrategy) executePlan(ctx context.Context, agent *EnhancedAgent, plan *Plan, execution *AgentExecution) error {
+func (s *PlanExecuteStrategy) executePlan(ctx context.Context, agent *Agent, plan *Plan, execution *AgentExecution) error {
 	plan.Status = PlanStatusInProgress
 
 	// Track completed steps for dependency resolution
@@ -349,7 +349,7 @@ func (s *PlanExecuteStrategy) executePlan(ctx context.Context, agent *EnhancedAg
 // executeStep executes a single plan step.
 func (s *PlanExecuteStrategy) executeStep(
 	ctx context.Context,
-	agent *EnhancedAgent,
+	agent *Agent,
 	step *PlanStep,
 	plan *Plan,
 	execution *AgentExecution,
@@ -470,7 +470,7 @@ func (s *PlanExecuteStrategy) executeStep(
 }
 
 // executeToolCalls executes tool calls from LLM response.
-func (s *PlanExecuteStrategy) executeToolCalls(ctx context.Context, agent *EnhancedAgent, toolCalls []llm.ToolCall) (any, error) {
+func (s *PlanExecuteStrategy) executeToolCalls(ctx context.Context, agent *Agent, toolCalls []llm.ToolCall) (any, error) {
 	results := make([]any, len(toolCalls))
 
 	for i, tc := range toolCalls {
@@ -511,7 +511,7 @@ func (s *PlanExecuteStrategy) executeToolCalls(ctx context.Context, agent *Enhan
 }
 
 // verifyStep validates a step's output.
-func (s *PlanExecuteStrategy) verifyStep(ctx context.Context, agent *EnhancedAgent, step *PlanStep) (*VerificationResult, error) {
+func (s *PlanExecuteStrategy) verifyStep(ctx context.Context, agent *Agent, step *PlanStep) (*VerificationResult, error) {
 	prompt := fmt.Sprintf(`Verify the quality of this step execution:
 
 Step: %s
@@ -561,7 +561,7 @@ Provide a score (0-1) and explain your assessment.`, step.Description, step.Resu
 }
 
 // verifyPlan validates the entire plan execution.
-func (s *PlanExecuteStrategy) verifyPlan(ctx context.Context, agent *EnhancedAgent, plan *Plan) (*VerificationResult, error) {
+func (s *PlanExecuteStrategy) verifyPlan(ctx context.Context, agent *Agent, plan *Plan) (*VerificationResult, error) {
 	// Build summary of plan execution
 	var summary strings.Builder
 	summary.WriteString(fmt.Sprintf("Goal: %s\n\n", plan.Goal))
@@ -615,7 +615,7 @@ Provide an overall assessment and score (0-1).`, summary.String())
 }
 
 // replan creates a new plan based on previous failure.
-func (s *PlanExecuteStrategy) replan(ctx context.Context, agent *EnhancedAgent, failedPlan *Plan, failureReason error) (*Plan, error) {
+func (s *PlanExecuteStrategy) replan(ctx context.Context, agent *Agent, failedPlan *Plan, failureReason error) (*Plan, error) {
 	if s.logger != nil {
 		s.logger.Info("Creating replan",
 			logger.String("original_plan", failedPlan.ID),

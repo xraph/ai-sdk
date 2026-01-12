@@ -12,7 +12,7 @@ import (
 // ReactAgent is an agent that uses the ReAct (Reasoning + Acting) strategy.
 // It alternates between reasoning and acting until reaching a final answer.
 type ReactAgent struct {
-	*EnhancedAgent
+	*Agent
 	strategy        *ReactStrategy
 	reasoningPrompt string
 }
@@ -176,15 +176,17 @@ func (b *ReactAgentBuilder) Build() (*ReactAgent, error) {
 		b.id = fmt.Sprintf("react_agent_%d", time.Now().UnixNano())
 	}
 
-	// Create base enhanced agent
-	baseBuilder := NewEnhancedAgentBuilder(b.name).
+	// Create base agent
+	baseBuilder := NewAgentBuilder().
 		WithID(b.id).
+		WithName(b.name).
 		WithDescription(b.description).
 		WithModel(b.model).
 		WithProvider(b.provider).
 		WithSystemPrompt(b.systemPrompt).
 		WithTools(b.tools...).
 		WithLLMManager(b.llmManager).
+		WithStateStore(b.stateStore).
 		WithLogger(b.logger).
 		WithMetrics(b.metrics).
 		WithMaxIterations(b.maxIterations).
@@ -194,11 +196,7 @@ func (b *ReactAgentBuilder) Build() (*ReactAgent, error) {
 		baseBuilder.WithGuardrails(b.guardrails)
 	}
 
-	// Note: Enhanced agent doesn't use state store directly in ReAct context
-	// State is managed through the strategy's memory manager instead
-	_ = b.stateStore // Prevent unused variable warning
-
-	enhancedAgent, err := baseBuilder.Build()
+	agent, err := baseBuilder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build base agent: %w", err)
 	}
@@ -216,7 +214,7 @@ func (b *ReactAgentBuilder) Build() (*ReactAgent, error) {
 
 	// Create ReactAgent
 	reactAgent := &ReactAgent{
-		EnhancedAgent:   enhancedAgent,
+		Agent:           agent,
 		strategy:        strategy,
 		reasoningPrompt: b.reasoningPrompt,
 	}
@@ -233,7 +231,7 @@ func (a *ReactAgent) Execute(ctx context.Context, input string) (*AgentExecution
 		)
 	}
 
-	execution, err := a.strategy.Execute(ctx, a.EnhancedAgent, input)
+	execution, err := a.strategy.Execute(ctx, a.Agent, input)
 	if err != nil {
 		if a.logger != nil {
 			a.logger.Error("ReactAgent execution failed",

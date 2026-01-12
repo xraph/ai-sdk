@@ -89,7 +89,7 @@ func NewReactStrategy(logger logger.Logger, metrics metrics.Metrics, config *Rea
 }
 
 // Execute runs the ReAct reasoning loop.
-func (s *ReactStrategy) Execute(ctx context.Context, agent *EnhancedAgent, input string) (*AgentExecution, error) {
+func (s *ReactStrategy) Execute(ctx context.Context, agent *Agent, input string) (*AgentExecution, error) {
 	startTime := time.Now()
 
 	// Create execution context with timeout
@@ -267,7 +267,7 @@ func (s *ReactStrategy) Execute(ctx context.Context, agent *EnhancedAgent, input
 // think generates reasoning about what to do next.
 func (s *ReactStrategy) think(
 	ctx context.Context,
-	agent *EnhancedAgent,
+	agent *Agent,
 	input string,
 	memoryContext string,
 	iteration int,
@@ -347,7 +347,7 @@ func (s *ReactStrategy) think(
 }
 
 // act executes the specified action/tool.
-func (s *ReactStrategy) act(ctx context.Context, agent *EnhancedAgent, trace ReasoningTrace) (string, error) {
+func (s *ReactStrategy) act(ctx context.Context, agent *Agent, trace ReasoningTrace) (string, error) {
 	// Find the tool
 	var tool *Tool
 	for i := range agent.tools {
@@ -391,7 +391,7 @@ func (s *ReactStrategy) act(ctx context.Context, agent *EnhancedAgent, trace Rea
 // reflect performs self-assessment of reasoning quality.
 func (s *ReactStrategy) reflect(
 	ctx context.Context,
-	agent *EnhancedAgent,
+	agent *Agent,
 	traces []ReasoningTrace,
 ) (ReflectionResult, error) {
 	reflection := ReflectionResult{

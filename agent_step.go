@@ -623,3 +623,31 @@ func CombinePreparers(preparers ...StepPreparer) StepPreparer {
 		return step, nil
 	}
 }
+
+// StepCallback is called after each step.
+type StepCallback func(step *AgentStep)
+
+// AgentExecution represents a single agent execution session.
+type AgentExecution struct {
+	ID          string
+	AgentID     string
+	StartTime   time.Time
+	EndTime     time.Time
+	Status      ExecutionStatus
+	Steps       []*AgentStep
+	FinalOutput string
+	Error       string
+	TotalTokens int
+	Metadata    map[string]any
+}
+
+// ExecutionStatus represents the status of an execution.
+type ExecutionStatus string
+
+const (
+	ExecutionStatusPending   ExecutionStatus = "pending"
+	ExecutionStatusRunning   ExecutionStatus = "running"
+	ExecutionStatusCompleted ExecutionStatus = "completed"
+	ExecutionStatusFailed    ExecutionStatus = "failed"
+	ExecutionStatusCancelled ExecutionStatus = "cancelled"
+)

@@ -15,7 +15,7 @@ import (
 	"github.com/xraph/go-utils/metrics"
 )
 
-// Agent represents an AI agent with state management.
+// Agent represents an AI agent with state management and enhanced execution control.
 type Agent struct {
 	ID          string
 	Name        string
@@ -49,6 +49,16 @@ type Agent struct {
 	artifactRegistry  *ArtifactRegistry
 	citationManager   *CitationManager
 	suggestionManager *SuggestionManager
+
+	// Enhanced execution control (formerly from EnhancedAgent)
+	stopConditions []StepCondition
+	preparers      []StepPreparer
+	stepCallbacks  []StepCallback
+
+	// Execution state (formerly from EnhancedAgent)
+	history   *StepHistory
+	execution *AgentExecution
+	mu        sync.RWMutex
 }
 
 // AgentState represents the persistent state of an agent.
@@ -891,4 +901,410 @@ func (a *Agent) generateSuggestions(ctx context.Context, response *AgentResponse
 	}
 
 	return a.suggestionManager.GenerateSuggestions(ctx, input)
+}
+
+// ============================================================================
+// Enhanced Execution Methods (formerly from EnhancedAgent)
+// ============================================================================
+
+// ExecuteWithSteps runs the agent with step-based execution and enhanced control.
+// This is the enhanced execution mode that provides fine-grained control over agent execution.
+func (a *Agent) ExecuteWithSteps(ctx context.Context, input string) (*AgentExecution, error) {
+	a.mu.Lock()
+
+	// Create execution
+	execution := &AgentExecution{
+		ID:        generateExecutionID(),
+		AgentID:   a.ID,
+		StartTime: time.Now(),
+		Status:    ExecutionStatusRunning,
+		Steps:     make([]*AgentStep, 0),
+		Metadata:  make(map[string]any),
+	}
+	a.execution = execution
+	a.history = NewStepHistory()
+	a.mu.Unlock()
+
+	defer func() {
+		a.mu.Lock()
+
+		execution.EndTime = time.Now()
+
+		a.mu.Unlock()
+	}()
+
+	// Execute steps
+	currentInput := input
+	stepIndex := 0
+
+	for {
+		select {
+		case <-ctx.Done():
+			a.mu.Lock()
+
+			execution.Status = ExecutionStatusCancelled
+			execution.Error = ctx.Err().Error()
+
+			a.mu.Unlock()
+
+			return execution, ctx.Err()
+		default:
+		}
+
+		// Create step
+		step := NewStepBuilder(a.ID, execution.ID, stepIndex).
+			WithInput(currentInput).
+			WithState(StepStatePending).
+			Build()
+
+		// Prepare step
+		var err error
+		for _, preparer := range a.preparers {
+			step, err = preparer(ctx, step)
+			if err != nil {
+				step.State = StepStateFailed
+				step.Error = err.Error()
+				a.addStepToExecution(step, execution)
+
+				a.mu.Lock()
+
+				execution.Status = ExecutionStatusFailed
+				execution.Error = err.Error()
+
+				a.mu.Unlock()
+
+				return execution, err
+			}
+		}
+
+		// Execute step
+		step.State = StepStateRunning
+		step, err = a.executeStep(ctx, step)
+
+		// Add step to history
+		a.addStepToExecution(step, execution)
+
+		// Call step callbacks
+		for _, callback := range a.stepCallbacks {
+			callback(step)
+		}
+
+		if err != nil {
+			a.mu.Lock()
+
+			execution.Status = ExecutionStatusFailed
+			execution.Error = err.Error()
+
+			a.mu.Unlock()
+
+			return execution, err
+		}
+
+		// Check stop conditions
+		shouldStop := false
+
+		for _, condition := range a.stopConditions {
+			if condition(step, a.history.Steps) {
+				shouldStop = true
+
+				break
+			}
+		}
+
+		// Default stop conditions
+		if !shouldStop {
+			// Stop if no tool calls (final answer)
+			if step.IsFinal() {
+				shouldStop = true
+			}
+			// Stop on max iterations (from base agent)
+			if a.maxIterations > 0 && stepIndex >= a.maxIterations-1 {
+				shouldStop = true
+			}
+		}
+
+		if shouldStop {
+			a.mu.Lock()
+
+			execution.Status = ExecutionStatusCompleted
+			execution.FinalOutput = step.Output
+
+			a.mu.Unlock()
+
+			return execution, nil
+		}
+
+		// Prepare for next iteration
+		currentInput = step.Output
+		stepIndex++
+	}
+}
+
+// executeStep executes a single step.
+func (a *Agent) executeStep(ctx context.Context, step *AgentStep) (*AgentStep, error) {
+	startTime := time.Now()
+
+	// Build messages
+	messages := a.buildStepMessages(step)
+
+	// Create request
+	request := llm.ChatRequest{
+		Provider: a.Provider,
+		Model:    a.Model,
+		Messages: messages,
+	}
+
+	if a.temperature != 0 {
+		request.Temperature = &a.temperature
+	}
+
+	// Add tools if any
+	if len(a.tools) > 0 {
+		llmTools := make([]llm.Tool, len(a.tools))
+		for i, tool := range a.tools {
+			llmTools[i] = llm.Tool{
+				Type: "function",
+				Function: &llm.FunctionDefinition{
+					Name:        tool.Name,
+					Description: tool.Description,
+					Parameters:  tool.Parameters,
+				},
+			}
+		}
+
+		request.Tools = llmTools
+	}
+
+	// Call LLM
+	response, err := a.llmManager.Chat(ctx, request)
+	if err != nil {
+		step.State = StepStateFailed
+		step.Error = err.Error()
+		step.EndTime = time.Now()
+		step.Duration = step.EndTime.Sub(startTime)
+
+		return step, err
+	}
+
+	// Extract content
+	if len(response.Choices) == 0 {
+		step.State = StepStateFailed
+		step.Error = "no response from LLM"
+		step.EndTime = time.Now()
+		step.Duration = step.EndTime.Sub(startTime)
+
+		return step, errors.New("no response from LLM")
+	}
+
+	choice := response.Choices[0]
+	step.Output = choice.Message.Content
+
+	// Track token usage
+	if response.Usage != nil {
+		step.TokensUsed = int(response.Usage.TotalTokens)
+	}
+
+	// Process tool calls
+	if len(choice.Message.ToolCalls) > 0 {
+		step.State = StepStateWaiting
+
+		for _, tc := range choice.Message.ToolCalls {
+			toolCall := StepToolCall{
+				ID:        tc.ID,
+				Name:      tc.Function.Name,
+				Arguments: make(map[string]any),
+				StartTime: time.Now(),
+			}
+
+			// Parse arguments
+			if tc.Function.Arguments != "" {
+				_ = json.Unmarshal([]byte(tc.Function.Arguments), &toolCall.Arguments)
+			}
+
+			step.ToolCalls = append(step.ToolCalls, toolCall)
+
+			// Execute tool
+			result, toolErr := a.executeToolByName(ctx, tc.Function.Name, toolCall.Arguments)
+
+			toolResult := StepToolResult{
+				ToolCallID: tc.ID,
+				Name:       tc.Function.Name,
+				Result:     result,
+				Duration:   time.Since(toolCall.StartTime),
+			}
+			if toolErr != nil {
+				toolResult.Error = toolErr.Error()
+			}
+
+			step.ToolResults = append(step.ToolResults, toolResult)
+		}
+
+		// Build output from tool results if no direct output
+		if step.Output == "" {
+			step.Output = a.formatToolResults(step.ToolResults)
+		}
+	}
+
+	step.State = StepStateCompleted
+	step.EndTime = time.Now()
+	step.Duration = step.EndTime.Sub(startTime)
+
+	return step, nil
+}
+
+// buildStepMessages builds the messages for a step.
+func (a *Agent) buildStepMessages(step *AgentStep) []llm.ChatMessage {
+	messages := make([]llm.ChatMessage, 0)
+
+	// Add system prompt
+	if a.systemPrompt != "" {
+		messages = append(messages, llm.ChatMessage{
+			Role:    "system",
+			Content: a.systemPrompt,
+		})
+	}
+
+	// Add history as context
+	for _, prevStep := range a.history.Steps {
+		// Add user input
+		if prevStep.Input != "" {
+			messages = append(messages, llm.ChatMessage{
+				Role:    "user",
+				Content: prevStep.Input,
+			})
+		}
+
+		// Add assistant output
+		if prevStep.Output != "" {
+			messages = append(messages, llm.ChatMessage{
+				Role:    "assistant",
+				Content: prevStep.Output,
+			})
+		}
+
+		// Add tool results
+		for _, tr := range prevStep.ToolResults {
+			resultJSON, _ := json.Marshal(tr.Result)
+			messages = append(messages, llm.ChatMessage{
+				Role:    "tool",
+				Content: string(resultJSON),
+			})
+		}
+	}
+
+	// Add current input
+	messages = append(messages, llm.ChatMessage{
+		Role:    "user",
+		Content: step.Input,
+	})
+
+	return messages
+}
+
+// executeToolByName executes a tool by name (used by step-based execution).
+func (a *Agent) executeToolByName(ctx context.Context, name string, args map[string]any) (any, error) {
+	for _, tool := range a.tools {
+		if tool.Name == name {
+			if tool.Handler != nil {
+				return tool.Handler(ctx, args)
+			}
+
+			return nil, fmt.Errorf("tool %s has no handler", name)
+		}
+	}
+
+	return nil, fmt.Errorf("tool not found: %s", name)
+}
+
+// formatToolResults formats tool results for output.
+func (a *Agent) formatToolResults(results []StepToolResult) string {
+	var output string
+	var outputSb472 strings.Builder
+
+	for _, r := range results {
+		if r.Error != "" {
+			outputSb472.WriteString(fmt.Sprintf("Tool %s error: %s\n", r.Name, r.Error))
+		} else {
+			resultJSON, _ := json.Marshal(r.Result)
+			outputSb472.WriteString(fmt.Sprintf("Tool %s result: %s\n", r.Name, string(resultJSON)))
+		}
+	}
+	output += outputSb472.String()
+
+	return output
+}
+
+// addStepToExecution adds a step to history and execution.
+func (a *Agent) addStepToExecution(step *AgentStep, execution *AgentExecution) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.history.Add(step)
+	execution.Steps = append(execution.Steps, step)
+	execution.TotalTokens += step.TokensUsed
+}
+
+// GetHistory returns the current step history.
+func (a *Agent) GetHistory() *StepHistory {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	return a.history
+}
+
+// GetExecution returns the current execution.
+func (a *Agent) GetExecution() *AgentExecution {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	return a.execution
+}
+
+// generateExecutionID generates a unique execution ID.
+func generateExecutionID() string {
+	return fmt.Sprintf("exec_%d", time.Now().UnixNano())
+}
+
+// ExecuteWithStreaming runs the agent with streaming support.
+func (a *Agent) ExecuteWithStreaming(ctx context.Context, input string, onStep func(*AgentStep)) (*AgentExecution, error) {
+	// Add the streaming callback temporarily
+	originalCallbacks := a.stepCallbacks
+	a.stepCallbacks = append(a.stepCallbacks, onStep)
+
+	defer func() {
+		a.stepCallbacks = originalCallbacks
+	}()
+
+	return a.ExecuteWithSteps(ctx, input)
+}
+
+// ContinueExecution continues from the last step.
+func (a *Agent) ContinueExecution(ctx context.Context, additionalInput string) (*AgentExecution, error) {
+	a.mu.RLock()
+	lastStep := a.history.Last()
+	a.mu.RUnlock()
+
+	var input string
+	if lastStep != nil {
+		input = lastStep.Output + "\n" + additionalInput
+	} else {
+		input = additionalInput
+	}
+
+	return a.ExecuteWithSteps(ctx, input)
+}
+
+// AddStopCondition adds a stop condition to the agent.
+func (a *Agent) AddStopCondition(condition StepCondition) {
+	a.stopConditions = append(a.stopConditions, condition)
+}
+
+// AddStepPreparer adds a step preparer to the agent.
+func (a *Agent) AddStepPreparer(preparer StepPreparer) {
+	a.preparers = append(a.preparers, preparer)
+}
+
+// AddStepCallback adds a step callback to the agent.
+func (a *Agent) AddStepCallback(callback StepCallback) {
+	a.stepCallbacks = append(a.stepCallbacks, callback)
 }
