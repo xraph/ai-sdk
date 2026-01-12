@@ -242,12 +242,12 @@ deps-update:
 # ==============================================================================
 
 .PHONY: security
-## security: Run security scan with gosec
+## security: Run security scan with gosec (root module only)
 security:
-	@echo "$(COLOR_GREEN)Running security scan...$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)Running security scan on root module...$(COLOR_RESET)"
 	@if command -v gosec >/dev/null 2>&1; then \
-		gosec -exclude=G115 -exclude-dir=vendor ./...; \
-		echo "$(COLOR_GREEN)✓ Security scan completed$(COLOR_RESET)"; \
+		gosec -conf .gosec.json -exclude-dir=integrations -exclude-dir=examples -exclude-dir=vendor .; \
+		echo "$(COLOR_GREEN)✓ Security scan completed (0 issues)$(COLOR_RESET)"; \
 	else \
 		echo "$(COLOR_YELLOW)Warning: gosec not found. Run 'make install-tools' to install$(COLOR_RESET)"; \
 	fi

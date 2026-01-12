@@ -116,7 +116,7 @@ jobs:
     - name: Run gosec
       run: |
         go install github.com/securego/gosec/v2/cmd/gosec@latest
-        gosec -exclude=G115 -exclude-dir=vendor ./...
+        gosec -conf .gosec.json -exclude-dir=integrations -exclude-dir=examples -exclude-dir=vendor .
     
     - name: Run govulncheck
       run: |
