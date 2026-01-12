@@ -14,7 +14,7 @@ func BenchmarkCacheStore_Memory(b *testing.B) {
 	store := memory.NewMemoryCacheStore(memory.Config{
 		MaxSize: 10000,
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	b.Run("Set", func(b *testing.B) {
 		value := []byte("test-value")
@@ -87,7 +87,7 @@ func BenchmarkCacheStore_HitRatio(b *testing.B) {
 	store := memory.NewMemoryCacheStore(memory.Config{
 		MaxSize: 100, // Small cache to test LRU
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	b.Run("HitRatio/80Percent", func(b *testing.B) {
 		// Prepopulate
@@ -113,7 +113,7 @@ func BenchmarkCacheStore_Concurrent(b *testing.B) {
 	store := memory.NewMemoryCacheStore(memory.Config{
 		MaxSize: 10000,
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	// Prepopulate
 	for i := 0; i < 1000; i++ {

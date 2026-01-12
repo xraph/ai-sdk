@@ -225,7 +225,7 @@ func (p *PgVectorStore) Upsert(ctx context.Context, vectors []sdk.Vector) error 
 
 	// Execute batch
 	br := p.pool.SendBatch(ctx, batch)
-	defer br.Close()
+	defer func() { _ = br.Close() }()
 
 	// Check all results
 	for i := 0; i < len(vectors); i++ {

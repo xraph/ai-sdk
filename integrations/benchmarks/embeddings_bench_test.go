@@ -13,7 +13,7 @@ import (
 func BenchmarkEmbeddings_OpenAI(b *testing.B) {
 	b.Skip("requires valid OpenAI API key and incurs costs")
 
-	embedder, err := openai.NewOpenAIEmbeddings(openai.OpenAIConfig{
+	embedder, err := openai.NewOpenAIEmbeddings(openai.Config{
 		APIKey: "your-api-key", // Set via environment variable in practice
 		Model:  "text-embedding-3-small",
 	})
@@ -66,7 +66,7 @@ func BenchmarkEmbeddings_Comparison(b *testing.B) {
 	}
 
 	b.Run("OpenAI/text-embedding-3-small", func(b *testing.B) {
-		embedder, _ := openai.NewOpenAIEmbeddings(openai.OpenAIConfig{
+		embedder, _ := openai.NewOpenAIEmbeddings(openai.Config{
 			APIKey: "key",
 			Model:  "text-embedding-3-small",
 		})

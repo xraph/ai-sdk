@@ -61,14 +61,14 @@ func TestChromaVectorStore_Upsert(t *testing.T) {
 		case "/api/v1/collections/test":
 			// GET collection - return exists
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"name": "test"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"name": "test"})
 		case "/api/v1/collections/test/add":
 			// POST upsert
 			if r.Method != "POST" {
 				t.Errorf("expected POST, got %s", r.Method)
 			}
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			_ = json.NewEncoder(w).Encode(map[string]bool{"success": true})
 		default:
 			t.Errorf("unexpected path: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -110,7 +110,7 @@ func TestChromaVectorStore_Upsert(t *testing.T) {
 func TestChromaVectorStore_UpsertEmpty(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"name": "test"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"name": "test"})
 	}))
 	defer server.Close()
 
@@ -128,7 +128,7 @@ func TestChromaVectorStore_UpsertEmpty(t *testing.T) {
 func TestChromaVectorStore_UpsertInvalidVectors(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"name": "test"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"name": "test"})
 	}))
 	defer server.Close()
 
@@ -173,7 +173,7 @@ func TestChromaVectorStore_Query(t *testing.T) {
 		switch r.URL.Path {
 		case "/api/v1/collections/test":
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"name": "test"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"name": "test"})
 		case "/api/v1/collections/test/query":
 			if r.Method != "POST" {
 				t.Errorf("expected POST, got %s", r.Method)
@@ -189,7 +189,7 @@ func TestChromaVectorStore_Query(t *testing.T) {
 					},
 				},
 			}
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response)
 		default:
 			t.Errorf("unexpected path: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -219,7 +219,7 @@ func TestChromaVectorStore_Query(t *testing.T) {
 func TestChromaVectorStore_QueryInvalid(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"name": "test"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"name": "test"})
 	}))
 	defer server.Close()
 
@@ -269,13 +269,13 @@ func TestChromaVectorStore_Delete(t *testing.T) {
 		switch r.URL.Path {
 		case "/api/v1/collections/test":
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"name": "test"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"name": "test"})
 		case "/api/v1/collections/test/delete":
 			if r.Method != "POST" {
 				t.Errorf("expected POST, got %s", r.Method)
 			}
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			_ = json.NewEncoder(w).Encode(map[string]bool{"success": true})
 		default:
 			t.Errorf("unexpected path: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -297,7 +297,7 @@ func TestChromaVectorStore_Delete(t *testing.T) {
 func TestChromaVectorStore_DeleteEmpty(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"name": "test"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"name": "test"})
 	}))
 	defer server.Close()
 
@@ -315,7 +315,7 @@ func TestChromaVectorStore_DeleteEmpty(t *testing.T) {
 func TestChromaVectorStore_Close(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"name": "test"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"name": "test"})
 	}))
 	defer server.Close()
 

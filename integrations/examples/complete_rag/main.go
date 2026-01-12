@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	sdk "github.com/xraph/ai-sdk"
@@ -16,7 +15,7 @@ func main() {
 	ctx := context.Background()
 
 	// Initialize logger
-	log := logger.NewLogger(logger.LevelInfo)
+	log := logger.NewLogger(logger.LoggingConfig{Level: logger.LevelInfo})
 
 	// 1. Create OpenAI embeddings
 	embedder, err := openai.NewOpenAIEmbeddings(openai.Config{
@@ -39,7 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to create vector store", logger.Error(err))
 	}
-	defer vectorStore.Close()
+	defer func() { _ = vectorStore.Close() }()
 
 	// 3. Create RAG
 	rag := sdk.NewRAG(vectorStore, embedder, log, nil, &sdk.RAGOptions{

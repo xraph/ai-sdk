@@ -55,7 +55,7 @@ func TestPostgresStateStore_Save(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	state := &sdk.AgentState{
 		AgentID:   "agent-1",
@@ -80,7 +80,7 @@ func TestPostgresStateStore_SaveInvalid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	tests := []struct {
 		name    string
@@ -128,7 +128,7 @@ func TestPostgresStateStore_Load(t *testing.T) {
 		ConnString: "postgres://postgres:postgres@localhost:5432/testdb",
 		TableName:  "test_states",
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	// Save first
 	originalState := &sdk.AgentState{
@@ -161,7 +161,7 @@ func TestPostgresStateStore_LoadNotFound(t *testing.T) {
 		ConnString: "postgres://postgres:postgres@localhost:5432/testdb",
 		TableName:  "test_states",
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	_, err := store.Load(ctx, "non-existent-agent", "non-existent-session")
 	if err == nil {
@@ -177,7 +177,7 @@ func TestPostgresStateStore_Delete(t *testing.T) {
 		ConnString: "postgres://postgres:postgres@localhost:5432/testdb",
 		TableName:  "test_states",
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	// Save first
 	state := &sdk.AgentState{
@@ -207,7 +207,7 @@ func TestPostgresStateStore_List(t *testing.T) {
 		ConnString: "postgres://postgres:postgres@localhost:5432/testdb",
 		TableName:  "test_states",
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	// Save multiple sessions
 	sessions := []string{"session-1", "session-2", "session-3"}
@@ -238,7 +238,7 @@ func TestPostgresStateStore_HealthCheck(t *testing.T) {
 		ConnString: "postgres://postgres:postgres@localhost:5432/testdb",
 		TableName:  "test_states",
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	err := store.HealthCheck(ctx)
 	if err != nil {
@@ -254,7 +254,7 @@ func TestPostgresStateStore_Count(t *testing.T) {
 		ConnString: "postgres://postgres:postgres@localhost:5432/testdb",
 		TableName:  "test_states",
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	count, err := store.Count(ctx)
 	if err != nil {

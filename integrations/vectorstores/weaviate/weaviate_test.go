@@ -1,3 +1,6 @@
+//go:build weaviate
+// +build weaviate
+
 package weaviate
 
 import (

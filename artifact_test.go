@@ -133,20 +133,39 @@ func TestArtifactRegistry(t *testing.T) {
 		// Create a fresh registry for this test
 		filterRegistry := NewArtifactRegistry(nil, nil)
 
-		if err := filterRegistry.Create(NewCodeArtifact("code1", "go", "package main")); err != nil {
+		code1 := NewCodeArtifact("code1", "go", "package main")
+		if err := filterRegistry.Create(code1); err != nil {
 			t.Fatalf("error creating code1: %v", err)
 		}
-		if err := filterRegistry.Create(NewCodeArtifact("code2", "python", "print('hi')")); err != nil {
+
+		code2 := NewCodeArtifact("code2", "python", "print('hi')")
+		if err := filterRegistry.Create(code2); err != nil {
 			t.Fatalf("error creating code2: %v", err)
 		}
-		if err := filterRegistry.Create(NewDocumentArtifact("doc1", "# Title")); err != nil {
+
+		doc1 := NewDocumentArtifact("doc1", "# Title")
+		if err := filterRegistry.Create(doc1); err != nil {
 			t.Fatalf("error creating doc1: %v", err)
+		}
+
+		// Verify artifacts were created with correct types
+		if code1.Type != ArtifactTypeCode {
+			t.Errorf("code1 type mismatch: expected %s, got %s", ArtifactTypeCode, code1.Type)
+		}
+		if code2.Type != ArtifactTypeCode {
+			t.Errorf("code2 type mismatch: expected %s, got %s", ArtifactTypeCode, code2.Type)
+		}
+		if doc1.Type != ArtifactTypeMarkdown {
+			t.Errorf("doc1 type mismatch: expected %s, got %s", ArtifactTypeMarkdown, doc1.Type)
 		}
 
 		// List all
 		all := filterRegistry.List(nil)
 		if len(all) != 3 {
 			t.Errorf("expected 3 artifacts, got %d", len(all))
+			for i, a := range all {
+				t.Logf("  [%d] %s (type: %s)", i, a.Name, a.Type)
+			}
 		}
 
 		// List only code
@@ -155,6 +174,14 @@ func TestArtifactRegistry(t *testing.T) {
 		})
 		if len(codeOnly) != 2 {
 			t.Errorf("expected 2 code artifacts, got %d", len(codeOnly))
+			for i, a := range codeOnly {
+				t.Logf("  [%d] %s (type: %s)", i, a.Name, a.Type)
+			}
+			// Show all artifacts for debugging
+			t.Logf("All artifacts in registry:")
+			for i, a := range all {
+				t.Logf("  [%d] %s (type: %s)", i, a.Name, a.Type)
+			}
 		}
 	})
 

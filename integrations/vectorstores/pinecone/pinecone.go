@@ -10,6 +10,7 @@ import (
 	"github.com/xraph/go-utils/metrics"
 
 	"github.com/pinecone-io/go-pinecone/pinecone"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // PineconeVectorStore implements VectorStore using Pinecone's official Go SDK.
@@ -118,12 +119,14 @@ func (p *PineconeVectorStore) Upsert(ctx context.Context, vectors []sdk.Vector) 
 			return fmt.Errorf("vector values cannot be empty for ID %s", v.ID)
 		}
 
-		// Convert metadata
-		metadata := &pinecone.Metadata{}
+		// Convert metadata to structpb.Struct
+		var metadata *pinecone.Metadata
 		if v.Metadata != nil {
-			for key, val := range v.Metadata {
-				(*metadata)[key] = val
+			metadataStruct, err := structpb.NewStruct(v.Metadata)
+			if err != nil {
+				return fmt.Errorf("failed to convert metadata for vector %s: %w", v.ID, err)
 			}
+			metadata = metadataStruct
 		}
 
 		pineconeVectors[i] = &pinecone.Vector{
@@ -178,7 +181,7 @@ func (p *PineconeVectorStore) Query(ctx context.Context, vector []float64, limit
 	// Add filter if provided
 	if len(filter) > 0 {
 		pineconeFilter := convertToPineconeFilter(filter)
-		queryReq.Filter = &pineconeFilter
+		queryReq.MetadataFilter = pineconeFilter
 	}
 
 	// Execute query
@@ -192,9 +195,8 @@ func (p *PineconeVectorStore) Query(ctx context.Context, vector []float64, limit
 	for i, match := range response.Matches {
 		metadata := make(map[string]any)
 		if match.Vector.Metadata != nil {
-			for key, val := range *match.Vector.Metadata {
-				metadata[key] = val
-			}
+			// Convert structpb.Struct to map[string]any
+			metadata = match.Vector.Metadata.AsMap()
 		}
 
 		results[i] = sdk.VectorMatch{
@@ -293,10 +295,12 @@ func toFloat32(values []float64) []float32 {
 	return result
 }
 
-func convertToPineconeFilter(filter map[string]any) pinecone.Metadata {
-	result := pinecone.Metadata{}
-	for key, val := range filter {
-		result[key] = val
+func convertToPineconeFilter(filter map[string]any) *pinecone.MetadataFilter {
+	// Convert map to structpb.Struct
+	metadataFilter, err := structpb.NewStruct(filter)
+	if err != nil {
+		// Return nil if conversion fails
+		return nil
 	}
-	return result
+	return metadataFilter
 }

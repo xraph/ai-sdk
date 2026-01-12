@@ -123,7 +123,7 @@ func (q *QdrantVectorStore) ensureCollection(ctx context.Context, vectorSize uin
 	}
 
 	// Map distance metric
-	distanceMetric := qdrant.Distance_Cosine
+	var distanceMetric qdrant.Distance
 	switch distance {
 	case "cosine":
 		distanceMetric = qdrant.Distance_Cosine
@@ -243,20 +243,12 @@ func (q *QdrantVectorStore) Query(ctx context.Context, vector []float64, limit i
 		filterCondition = buildQdrantFilter(filter)
 	}
 
-	// Search
+	// Search using the new helper function
 	searchResult, err := q.client.Query(ctx, &qdrant.QueryPoints{
 		CollectionName: q.collectionName,
-		Query: &qdrant.Query{
-			QueryVariant: &qdrant.Query_Nearest{
-				Nearest: &qdrant.VectorInput{
-					VectorInputVariant: &qdrant.VectorInput_Dense{
-						Dense: &qdrant.DenseVector{Data: toFloat32(vector)},
-					},
-				},
-			},
-		},
-		Filter: filterCondition,
-		Limit:  uint64Ptr(uint64(limit)),
+		Query:          qdrant.NewQueryDense(toFloat32(vector)),
+		Filter:         filterCondition,
+		Limit:          uint64Ptr(uint64(limit)),
 		WithPayload: &qdrant.WithPayloadSelector{
 			SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true},
 		},
@@ -361,7 +353,7 @@ func (q *QdrantVectorStore) Close() error {
 
 // Count returns the number of vectors in the collection.
 func (q *QdrantVectorStore) Count(ctx context.Context) (int64, error) {
-	info, err := q.client.GetCollection(ctx, q.collectionName)
+	info, err := q.client.GetCollectionInfo(ctx, q.collectionName)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get collection info: %w", err)
 	}

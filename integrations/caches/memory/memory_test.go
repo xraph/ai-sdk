@@ -11,7 +11,7 @@ func TestNewMemoryCacheStore(t *testing.T) {
 	if store == nil {
 		t.Fatal("expected non-nil store")
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	if store.Size() != 0 {
 		t.Errorf("new store should be empty, got %d entries", store.Size())
@@ -20,7 +20,7 @@ func TestNewMemoryCacheStore(t *testing.T) {
 
 func TestMemoryCacheStore_SetGet(t *testing.T) {
 	store := NewMemoryCacheStore(Config{})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	ctx := context.Background()
 
 	// Set value
@@ -44,7 +44,7 @@ func TestMemoryCacheStore_SetGet(t *testing.T) {
 
 func TestMemoryCacheStore_GetNonExistent(t *testing.T) {
 	store := NewMemoryCacheStore(Config{})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	ctx := context.Background()
 
 	_, found, err := store.Get(ctx, "non-existent")
@@ -58,7 +58,7 @@ func TestMemoryCacheStore_GetNonExistent(t *testing.T) {
 
 func TestMemoryCacheStore_Delete(t *testing.T) {
 	store := NewMemoryCacheStore(Config{})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	ctx := context.Background()
 
 	// Set then delete
@@ -77,7 +77,7 @@ func TestMemoryCacheStore_Delete(t *testing.T) {
 
 func TestMemoryCacheStore_Clear(t *testing.T) {
 	store := NewMemoryCacheStore(Config{})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	ctx := context.Background()
 
 	// Set multiple keys
@@ -102,7 +102,7 @@ func TestMemoryCacheStore_Clear(t *testing.T) {
 
 func TestMemoryCacheStore_TTL(t *testing.T) {
 	store := NewMemoryCacheStore(Config{})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	ctx := context.Background()
 
 	// Set with short TTL
@@ -131,7 +131,7 @@ func TestMemoryCacheStore_LRUEviction(t *testing.T) {
 	store := NewMemoryCacheStore(Config{
 		MaxSize: 3, // Small cache to test eviction
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	ctx := context.Background()
 
 	// Fill cache
@@ -160,7 +160,7 @@ func TestMemoryCacheStore_LRUEviction(t *testing.T) {
 
 func TestMemoryCacheStore_Update(t *testing.T) {
 	store := NewMemoryCacheStore(Config{})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	ctx := context.Background()
 
 	// Set initial value
@@ -183,7 +183,7 @@ func TestMemoryCacheStore_Concurrent(t *testing.T) {
 	store := NewMemoryCacheStore(Config{
 		MaxSize: 100,
 	})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	ctx := context.Background()
 
 	// Concurrent writes
@@ -214,7 +214,7 @@ func TestMemoryCacheStore_Concurrent(t *testing.T) {
 
 func TestMemoryCacheStore_Size(t *testing.T) {
 	store := NewMemoryCacheStore(Config{})
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	ctx := context.Background()
 
 	if store.Size() != 0 {

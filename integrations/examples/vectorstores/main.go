@@ -98,6 +98,7 @@ func demoMemoryStore(ctx context.Context, vectors []sdk.Vector) {
 	fmt.Printf("Deleted doc1, remaining: %d\n", store.Count())
 }
 
+//nolint:unused,errcheck // Example function for documentation
 func demoPgVector(ctx context.Context, vectors []sdk.Vector) {
 	// Create pgvector store
 	store, err := pgvector.NewPgVectorStore(ctx, pgvector.Config{
@@ -127,6 +128,7 @@ func demoPgVector(ctx context.Context, vectors []sdk.Vector) {
 	fmt.Printf("Total vectors in store: %d\n", count)
 }
 
+//nolint:unused,errcheck // Example function for documentation
 func demoQdrant(ctx context.Context, vectors []sdk.Vector) {
 	// Create Qdrant store
 	store, err := qdrant.NewQdrantVectorStore(ctx, qdrant.Config{
@@ -156,6 +158,7 @@ func demoQdrant(ctx context.Context, vectors []sdk.Vector) {
 	fmt.Printf("Total vectors in collection: %d\n", count)
 }
 
+//nolint:unused,errcheck // Example function for documentation
 func demoPinecone(ctx context.Context, vectors []sdk.Vector) {
 	// Create Pinecone store
 	store, err := pinecone.NewPineconeVectorStore(ctx, pinecone.Config{

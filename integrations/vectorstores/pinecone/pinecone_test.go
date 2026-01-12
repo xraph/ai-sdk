@@ -20,13 +20,17 @@ func TestToFloat32(t *testing.T) {
 func TestConvertToPineconeFilter(t *testing.T) {
 	filter := map[string]any{
 		"category": "test",
-		"count":    42,
+		"count":    float64(42), // structpb converts numbers to float64
 	}
 
 	result := convertToPineconeFilter(filter)
-	assert.Len(t, result, 2)
-	assert.Equal(t, "test", result["category"])
-	assert.Equal(t, 42, result["count"])
+	assert.NotNil(t, result)
+
+	// Convert back to map to verify
+	resultMap := result.AsMap()
+	assert.Len(t, resultMap, 2)
+	assert.Equal(t, "test", resultMap["category"])
+	assert.Equal(t, float64(42), resultMap["count"])
 }
 
 func TestPineconeVectorStore_ImplementsInterface(t *testing.T) {

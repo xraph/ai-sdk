@@ -88,7 +88,7 @@ func (c *ChromaVectorStore) ensureCollection(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get collection: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusOK {
 		if c.logger != nil {
@@ -121,7 +121,7 @@ func (c *ChromaVectorStore) ensureCollection(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create collection: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
@@ -192,7 +192,7 @@ func (c *ChromaVectorStore) Upsert(ctx context.Context, vectors []sdk.Vector) er
 	if err != nil {
 		return fmt.Errorf("upsert request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -254,7 +254,7 @@ func (c *ChromaVectorStore) Query(ctx context.Context, vector []float64, limit i
 	if err != nil {
 		return nil, fmt.Errorf("query request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -334,7 +334,7 @@ func (c *ChromaVectorStore) Delete(ctx context.Context, ids []string) error {
 	if err != nil {
 		return fmt.Errorf("delete request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)

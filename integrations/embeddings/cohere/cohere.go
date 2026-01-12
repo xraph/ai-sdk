@@ -93,14 +93,28 @@ func (c *CohereEmbeddings) Embed(ctx context.Context, texts []string) ([]sdk.Vec
 		return nil, fmt.Errorf("cohere embed request failed: %w", err)
 	}
 
+	// Extract embeddings from response (Cohere API v2 structure)
+	var embeddings [][]float64
+	var meta *coherego.ApiMeta
+
+	if resp.EmbeddingsFloats != nil {
+		embeddings = resp.EmbeddingsFloats.Embeddings
+		meta = resp.EmbeddingsFloats.Meta
+	} else if resp.EmbeddingsByType != nil {
+		// Handle EmbeddingsByType if needed
+		return nil, fmt.Errorf("EmbeddingsByType response not yet supported")
+	} else {
+		return nil, fmt.Errorf("no embeddings in response")
+	}
+
 	// Check response
-	if len(resp.Embeddings) != len(texts) {
-		return nil, fmt.Errorf("mismatch in embeddings count: expected %d, got %d", len(texts), len(resp.Embeddings))
+	if len(embeddings) != len(texts) {
+		return nil, fmt.Errorf("mismatch in embeddings count: expected %d, got %d", len(texts), len(embeddings))
 	}
 
 	// Convert to SDK format
-	vectors := make([]sdk.Vector, len(resp.Embeddings))
-	for i, embedding := range resp.Embeddings {
+	vectors := make([]sdk.Vector, len(embeddings))
+	for i, embedding := range embeddings {
 		vectors[i] = sdk.Vector{
 			ID:     fmt.Sprintf("cohere-embedding-%d", i),
 			Values: embedding,
@@ -123,9 +137,9 @@ func (c *CohereEmbeddings) Embed(ctx context.Context, texts []string) ([]sdk.Vec
 			metrics.WithLabel("model", c.model)).Add(float64(len(vectors)))
 
 		// Track tokens if available
-		if resp.Meta != nil && resp.Meta.BilledUnits != nil && resp.Meta.BilledUnits.InputTokens != nil {
+		if meta != nil && meta.BilledUnits != nil && meta.BilledUnits.InputTokens != nil {
 			c.metrics.Counter("forge.integrations.cohere.tokens",
-				metrics.WithLabel("model", c.model)).Add(float64(*resp.Meta.BilledUnits.InputTokens))
+				metrics.WithLabel("model", c.model)).Add(float64(*meta.BilledUnits.InputTokens))
 		}
 	}
 

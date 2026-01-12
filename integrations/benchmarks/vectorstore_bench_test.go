@@ -32,9 +32,7 @@ func generateBenchVectors(count, dimensions int) []sdk.Vector {
 
 // BenchmarkVectorStore_Memory benchmarks the in-memory vector store.
 func BenchmarkVectorStore_Memory(b *testing.B) {
-	store, _ := memory.NewInMemoryVectorStore(memory.InMemoryConfig{
-		Dimensions: 1536,
-	})
+	store := memory.NewMemoryVectorStore(memory.Config{})
 
 	b.Run("Upsert/Batch10", func(b *testing.B) {
 		vectors := generateBenchVectors(10, 1536)
