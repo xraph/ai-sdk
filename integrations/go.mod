@@ -1,6 +1,6 @@
 module github.com/xraph/ai-sdk/integrations
 
-go 1.24.4
+go 1.25.5
 
 require (
 	github.com/qdrant/go-client v1.16.2
