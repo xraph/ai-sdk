@@ -744,7 +744,7 @@ go test -bench=. -benchmem ./benchmarks/...
 
 ---
 
-## 🤝 Comparison
+## 🤝 Comparison *Still needs research to be thorough so except vercel take the others with a grain of salt*
 
 > **Last Updated**: January 2026
 > 
