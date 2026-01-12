@@ -670,8 +670,16 @@ func (b *ArtifactBuilder) Build() *Artifact {
 
 // --- Helper functions ---
 
+var (
+	artifactIDCounter uint64
+	artifactIDMutex   sync.Mutex
+)
+
 func generateArtifactID() string {
-	return fmt.Sprintf("artifact_%d", time.Now().UnixNano())
+	artifactIDMutex.Lock()
+	defer artifactIDMutex.Unlock()
+	artifactIDCounter++
+	return fmt.Sprintf("artifact_%d_%d", time.Now().UnixNano(), artifactIDCounter)
 }
 
 func isRunnableLanguage(language string) bool {
