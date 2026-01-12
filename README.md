@@ -39,7 +39,7 @@ A production-ready, type-safe AI SDK for Go with advanced features like multi-ti
 ### Installation
 
 ```bash
-go get github.com/xraph/ai-sdk/ai/sdk
+go get github.com/xraph/ai-sdk
 ```
 
 ### Basic Text Generation
