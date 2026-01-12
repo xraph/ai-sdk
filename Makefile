@@ -1,5 +1,5 @@
-# Vessel Makefile
-# Development workflow for Vessel project
+# AI SDK Makefile
+# Development workflow for AI SDK project
 
 # ==============================================================================
 # Variables
@@ -8,6 +8,11 @@
 # Project configuration
 COVERAGE_DIR := coverage
 LINT_CONFIG := .golangci.yml
+
+# Modules (root and integrations)
+ROOT_MODULE := .
+INTEGRATIONS_MODULE := ./integrations
+ALL_MODULES := $(ROOT_MODULE) $(INTEGRATIONS_MODULE)
 
 # Version and metadata
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -53,7 +58,9 @@ all: fmt lint test
 .PHONY: help
 ## help: Show this help message
 help:
-	@echo "$(COLOR_BLUE)Vessel Makefile$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)AI SDK Makefile$(COLOR_RESET)"
+	@echo ""
+	@echo "$(COLOR_YELLOW)Multi-module project: root + integrations$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_GREEN)Usage:$(COLOR_RESET)"
 	@echo "  make [target]"
@@ -66,10 +73,12 @@ help:
 # ==============================================================================
 
 .PHONY: test
-## test: Run all tests with race detector
+## test: Run all tests with race detector (all modules)
 test:
-	@echo "$(COLOR_GREEN)Running tests...$(COLOR_RESET)"
-	@$(GOTEST) $(TEST_FLAGS) $(TEST_DIRS)
+	@echo "$(COLOR_GREEN)Running tests on root module...$(COLOR_RESET)"
+	@$(GOTEST) $(TEST_FLAGS) ./...
+	@echo "$(COLOR_GREEN)Running tests on integrations module...$(COLOR_RESET)"
+	@cd $(INTEGRATIONS_MODULE) && $(GOTEST) $(TEST_FLAGS) ./...
 	@echo "$(COLOR_GREEN)✓ All tests passed$(COLOR_RESET)"
 
 .PHONY: test-short
@@ -125,40 +134,55 @@ bench-compare:
 # ==============================================================================
 
 .PHONY: lint
-## lint: Run golangci-lint
+## lint: Run golangci-lint (all modules)
 lint:
-	@echo "$(COLOR_GREEN)Running linter...$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)Linting root module...$(COLOR_RESET)"
 	@if command -v $(GOLANGCI_LINT) >/dev/null 2>&1; then \
 		$(GOLANGCI_LINT) run $(LINT_DIRS) --timeout=5m; \
-		echo "$(COLOR_GREEN)✓ Linting passed$(COLOR_RESET)"; \
+		echo "$(COLOR_GREEN)Linting integrations module...$(COLOR_RESET)"; \
+		cd $(INTEGRATIONS_MODULE) && $(GOLANGCI_LINT) run ./... --timeout=5m; \
+		echo "$(COLOR_GREEN)✓ All modules linted$(COLOR_RESET)"; \
 	else \
 		echo "$(COLOR_RED)Error: golangci-lint not found. Run 'make install-tools' to install$(COLOR_RESET)"; \
 		exit 1; \
 	fi
 
 .PHONY: lint-fix
-## lint-fix: Run golangci-lint with auto-fix
+## lint-fix: Run golangci-lint with auto-fix (all modules)
 lint-fix:
-	@echo "$(COLOR_GREEN)Running linter with auto-fix...$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)Running linter with auto-fix on root module...$(COLOR_RESET)"
 	@$(GOLANGCI_LINT) run $(LINT_DIRS) --fix --timeout=5m
+	@echo "$(COLOR_GREEN)Running linter with auto-fix on integrations module...$(COLOR_RESET)"
+	@cd $(INTEGRATIONS_MODULE) && $(GOLANGCI_LINT) run ./... --fix --timeout=5m
+	@echo "$(COLOR_GREEN)✓ All modules auto-fixed$(COLOR_RESET)"
 
 .PHONY: fmt
-## fmt: Format Go code
+## fmt: Format Go code (all modules)
 fmt:
-	@echo "$(COLOR_GREEN)Formatting code...$(COLOR_RESET)"
-	@$(GOFMT) $(TEST_DIRS)
-	@echo "$(COLOR_GREEN)✓ Code formatted$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)Formatting root module...$(COLOR_RESET)"
+	@$(GOFMT) ./...
+	@echo "$(COLOR_GREEN)Formatting integrations module...$(COLOR_RESET)"
+	@cd $(INTEGRATIONS_MODULE) && $(GOFMT) ./...
+	@echo "$(COLOR_GREEN)✓ All modules formatted$(COLOR_RESET)"
 
 .PHONY: fmt-check
-## fmt-check: Check if code is formatted
+## fmt-check: Check if code is formatted (all modules)
 fmt-check:
-	@echo "$(COLOR_GREEN)Checking code format...$(COLOR_RESET)"
-	@UNFORMATTED=$$(gofmt -l .); \
+	@echo "$(COLOR_GREEN)Checking root module format...$(COLOR_RESET)"
+	@UNFORMATTED=$$(gofmt -l . 2>/dev/null | grep -v '^integrations/'); \
 	if [ -n "$$UNFORMATTED" ]; then \
-		echo "$(COLOR_RED)Code is not formatted. Run 'make fmt'$(COLOR_RESET)"; \
+		echo "$(COLOR_RED)Root module code is not formatted. Run 'make fmt'$(COLOR_RESET)"; \
 		echo "$$UNFORMATTED"; \
 		exit 1; \
 	fi
+	@echo "$(COLOR_GREEN)Checking integrations module format...$(COLOR_RESET)"
+	@cd $(INTEGRATIONS_MODULE) && UNFORMATTED=$$(gofmt -l .); \
+	if [ -n "$$UNFORMATTED" ]; then \
+		echo "$(COLOR_RED)Integrations module code is not formatted. Run 'make fmt'$(COLOR_RESET)"; \
+		echo "$$UNFORMATTED"; \
+		exit 1; \
+	fi
+	@echo "$(COLOR_GREEN)✓ All modules properly formatted$(COLOR_RESET)"
 
 .PHONY: vet
 ## vet: Run go vet
@@ -168,19 +192,26 @@ vet:
 	@echo "$(COLOR_GREEN)✓ Vet passed$(COLOR_RESET)"
 
 .PHONY: tidy
-## tidy: Tidy go modules
+## tidy: Tidy go modules (all modules)
 tidy:
-	@echo "$(COLOR_GREEN)Tidying modules...$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)Tidying root module...$(COLOR_RESET)"
 	@$(GOMOD) tidy
-	@echo "$(COLOR_GREEN)✓ Modules tidied$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)Tidying integrations module...$(COLOR_RESET)"
+	@cd $(INTEGRATIONS_MODULE) && $(GOMOD) tidy
+	@echo "$(COLOR_GREEN)✓ All modules tidied$(COLOR_RESET)"
 
 .PHONY: tidy-check
-## tidy-check: Check if go.mod is tidy
+## tidy-check: Check if go.mod is tidy (all modules)
 tidy-check:
-	@echo "$(COLOR_GREEN)Checking if modules are tidy...$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)Checking if root module is tidy...$(COLOR_RESET)"
 	@$(GOMOD) tidy
 	@git diff --exit-code go.mod go.sum || \
-		(echo "$(COLOR_RED)go.mod or go.sum is not tidy. Run 'make tidy'$(COLOR_RESET)" && exit 1)
+		(echo "$(COLOR_RED)Root go.mod or go.sum is not tidy. Run 'make tidy'$(COLOR_RESET)" && exit 1)
+	@echo "$(COLOR_GREEN)Checking if integrations module is tidy...$(COLOR_RESET)"
+	@cd $(INTEGRATIONS_MODULE) && $(GOMOD) tidy
+	@cd $(INTEGRATIONS_MODULE) && git diff --exit-code go.mod go.sum || \
+		(echo "$(COLOR_RED)Integrations go.mod or go.sum is not tidy. Run 'make tidy'$(COLOR_RESET)" && exit 1)
+	@echo "$(COLOR_GREEN)✓ All modules are tidy$(COLOR_RESET)"
 
 .PHONY: verify
 ## verify: Run all verification checks (fmt-check, vet, tidy-check, lint)
@@ -422,7 +453,7 @@ changelog:
 github-workflows:
 	@echo "$(COLOR_BLUE)GitHub Workflows:$(COLOR_RESET)"
 	@echo ""
-	@echo "$(COLOR_GREEN)Expected workflows for go-utils:$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)Expected workflows for AI SDK:$(COLOR_RESET)"
 	@echo "  1. ci.yml - Run tests and linters on PRs and pushes"
 	@echo "  2. release.yml - Automatically create releases on version tags"
 	@echo "  3. codeql.yml - Security analysis (CodeQL)"
@@ -464,14 +495,14 @@ f: fmt
 .PHONY: info
 ## info: Display project information
 info:
-	@echo "$(COLOR_BLUE)go-utils Project Information$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)AI SDK Project Information$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_GREEN)Version:$(COLOR_RESET)    $(VERSION)"
 	@echo "$(COLOR_GREEN)Commit:$(COLOR_RESET)     $(COMMIT)"
 	@echo "$(COLOR_GREEN)Go Version:$(COLOR_RESET) $(GO_VERSION)"
 	@echo ""
-	@echo "$(COLOR_GREEN)Module:$(COLOR_RESET)     $$(head -1 go.mod | cut -d' ' -f2)"
-	@echo "$(COLOR_GREEN)Packages:$(COLOR_RESET)   errs, log"
+	@echo "$(COLOR_GREEN)Root Module:$(COLOR_RESET)         $$(head -1 go.mod | cut -d' ' -f2)"
+	@echo "$(COLOR_GREEN)Integrations Module:$(COLOR_RESET) $$(cd $(INTEGRATIONS_MODULE) && head -1 go.mod | cut -d' ' -f2)"
 	@echo ""
 	@echo "$(COLOR_GREEN)Latest Tag:$(COLOR_RESET) $$(git describe --tags --abbrev=0 2>/dev/null || echo 'none')"
 
