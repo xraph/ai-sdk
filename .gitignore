@@ -1,0 +1,171 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+build/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+coverage.html
+*.coverprofile
+
+# Dependency directories
+vendor/
+node_modules/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Go build cache
+.cache/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+.project
+.settings/
+.classpath
+.factorypath
+.buildpath
+
+# Cursor IDE
+.cursor/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.crt
+secrets/
+config/local.yaml
+config/dev.yaml
+config/*.secret.*
+
+# API keys and credentials
+**/api-keys.txt
+**/credentials.json
+**/.credentials/
+
+# Logs
+*.log
+logs/
+*.log.*
+/tmp/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+site/
+
+# Profiling
+*.prof
+*.trace
+cpu.pprof
+mem.pprof
+profile.out
+
+# Benchmarks
+*.bench
+
+# AI/LLM specific
+.anthropic/
+.openai/
+models/
+*.model
+*.ckpt
+*.safetensors
+
+# Local development
+local/
+sandbox/
+playground/
+scratch/
+examples/output/
+examples/data/
+
+# Generated files
+*.pb.go
+*.mock.go
+*_gen.go
+# But keep testhelpers/mocks.go
+!testhelpers/mocks.go
+
+# Compiled Object files, Static and Dynamic libs
+*.o
+*.a
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+# cgo
+_cgo_gotypes.go
+_cgo_export.*
+
+# Test output
+testdata/output/
+
+# Air (live reload)
+tmp/
+.air.toml.local
+
+# goreleaser
+dist/
+.goreleaser.yml.local
+
+# Docker
+docker-compose.override.yml
+.dockerignore.local
+
+# Task runner
+.task/
+
+# Misc
+*.pid
+.terraform/
+*.tfstate
+*.tfstate.backup
+
