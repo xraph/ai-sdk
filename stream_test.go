@@ -366,20 +366,32 @@ func TestStreamBuilder_OnError(t *testing.T) {
 
 func TestStreamBuilder_Stream_Success(t *testing.T) {
 	mockLLM := &testhelpers.MockLLMManager{
-		ChatFunc: func(ctx context.Context, request llm.ChatRequest) (llm.ChatResponse, error) {
+		ChatStreamFunc: func(ctx context.Context, request llm.ChatRequest, handler func(llm.ChatStreamEvent) error) error {
 			if !request.Stream {
 				t.Error("expected stream mode to be enabled")
 			}
 
-			return llm.ChatResponse{
-				ID:    "test-stream",
-				Model: "gpt-4",
+			// Simulate streaming tokens
+			tokens := []string{"This ", "is ", "a ", "streaming ", "response"}
+			for _, token := range tokens {
+				err := handler(llm.ChatStreamEvent{
+					Choices: []llm.ChatChoice{
+						{
+							Delta: &llm.ChatMessage{
+								Content: token,
+							},
+						},
+					},
+				})
+				if err != nil {
+					return err
+				}
+			}
+
+			// Send final event with finish reason and usage (no content)
+			return handler(llm.ChatStreamEvent{
 				Choices: []llm.ChatChoice{
 					{
-						Message: llm.ChatMessage{
-							Role:    "assistant",
-							Content: "This is a streaming response",
-						},
 						FinishReason: "stop",
 					},
 				},
@@ -388,7 +400,7 @@ func TestStreamBuilder_Stream_Success(t *testing.T) {
 					OutputTokens: 10,
 					TotalTokens:  30,
 				},
-			}, nil
+			})
 		},
 	}
 
@@ -446,7 +458,7 @@ func TestStreamBuilder_Stream_Success(t *testing.T) {
 
 func TestStreamBuilder_Stream_WithTemplateVars(t *testing.T) {
 	mockLLM := &testhelpers.MockLLMManager{
-		ChatFunc: func(ctx context.Context, request llm.ChatRequest) (llm.ChatResponse, error) {
+		ChatStreamFunc: func(ctx context.Context, request llm.ChatRequest, handler func(llm.ChatStreamEvent) error) error {
 			// Verify template was rendered
 			if len(request.Messages) > 0 {
 				lastMsg := request.Messages[len(request.Messages)-1]
@@ -455,16 +467,18 @@ func TestStreamBuilder_Stream_WithTemplateVars(t *testing.T) {
 				}
 			}
 
-			return llm.ChatResponse{
+			// Simulate streaming
+			return handler(llm.ChatStreamEvent{
 				Choices: []llm.ChatChoice{
 					{
 						Message: llm.ChatMessage{
 							Role:    "assistant",
 							Content: "Quantum computing explanation",
 						},
+						FinishReason: "stop",
 					},
 				},
-			}, nil
+			})
 		},
 	}
 
@@ -525,8 +539,8 @@ func TestStreamBuilder_Stream_WithSystemPrompt(t *testing.T) {
 
 func TestStreamBuilder_Stream_LLMError(t *testing.T) {
 	mockLLM := &testhelpers.MockLLMManager{
-		ChatFunc: func(ctx context.Context, request llm.ChatRequest) (llm.ChatResponse, error) {
-			return llm.ChatResponse{}, errors.New("API error")
+		ChatStreamFunc: func(ctx context.Context, request llm.ChatRequest, handler func(llm.ChatStreamEvent) error) error {
+			return errors.New("API error")
 		},
 	}
 
@@ -746,17 +760,18 @@ func TestStreamBuilder_Stream_WithAllParameters(t *testing.T) {
 
 func TestStreamBuilder_Stream_NilLogger(t *testing.T) {
 	mockLLM := &testhelpers.MockLLMManager{
-		ChatFunc: func(ctx context.Context, request llm.ChatRequest) (llm.ChatResponse, error) {
-			return llm.ChatResponse{
+		ChatStreamFunc: func(ctx context.Context, request llm.ChatRequest, handler func(llm.ChatStreamEvent) error) error {
+			return handler(llm.ChatStreamEvent{
 				Choices: []llm.ChatChoice{
 					{
 						Message: llm.ChatMessage{
 							Role:    "assistant",
 							Content: "Response",
 						},
+						FinishReason: "stop",
 					},
 				},
-			}, nil
+			})
 		},
 	}
 
@@ -776,14 +791,15 @@ func TestStreamBuilder_Stream_NilLogger(t *testing.T) {
 
 func TestStreamBuilder_Stream_NilMetrics(t *testing.T) {
 	mockLLM := &testhelpers.MockLLMManager{
-		ChatFunc: func(ctx context.Context, request llm.ChatRequest) (llm.ChatResponse, error) {
-			return llm.ChatResponse{
+		ChatStreamFunc: func(ctx context.Context, request llm.ChatRequest, handler func(llm.ChatStreamEvent) error) error {
+			return handler(llm.ChatStreamEvent{
 				Choices: []llm.ChatChoice{
 					{
 						Message: llm.ChatMessage{
 							Role:    "assistant",
 							Content: "Response",
 						},
+						FinishReason: "stop",
 					},
 				},
 				Usage: &llm.LLMUsage{
@@ -791,7 +807,7 @@ func TestStreamBuilder_Stream_NilMetrics(t *testing.T) {
 					OutputTokens: 5,
 					TotalTokens:  15,
 				},
-			}, nil
+			})
 		},
 	}
 

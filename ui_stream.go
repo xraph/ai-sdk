@@ -746,8 +746,10 @@ func (m *UIPartStreamManager) CreateStreamer(
 	})
 
 	m.mu.Lock()
-	m.metrics.Counter("forge.ai.sdk.ui_stream.created", metrics.WithLabel("part_type", string(partType))).Inc()
-	m.metrics.Histogram("forge.ai.sdk.ui_stream.sections", metrics.WithLabel("part_type", string(partType))).Observe(float64(len(streamer.sections)))
+	if m.metrics != nil {
+		m.metrics.Counter("forge.ai.sdk.ui_stream.created", metrics.WithLabel("part_type", string(partType))).Inc()
+		m.metrics.Histogram("forge.ai.sdk.ui_stream.sections", metrics.WithLabel("part_type", string(partType))).Observe(float64(len(streamer.sections)))
+	}
 	m.streamers[streamer.partID] = streamer
 	m.mu.Unlock()
 

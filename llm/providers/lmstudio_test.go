@@ -222,6 +222,19 @@ func TestLMStudioProvider_Chat(t *testing.T) {
 func TestLMStudioProvider_Complete(t *testing.T) {
 	// Create mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Handle model discovery request
+		if r.URL.Path == "/v1/models" {
+			modelsResp := lmstudioModelsResponse{
+				Object: "list",
+				Data: []lmstudioModelInfo{
+					{ID: "test-model", Object: "model"},
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(modelsResp)
+			return
+		}
+
 		if r.URL.Path != "/v1/completions" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -301,6 +314,19 @@ func TestLMStudioProvider_Complete(t *testing.T) {
 func TestLMStudioProvider_Embed(t *testing.T) {
 	// Create mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Handle model discovery request
+		if r.URL.Path == "/v1/models" {
+			modelsResp := lmstudioModelsResponse{
+				Object: "list",
+				Data: []lmstudioModelInfo{
+					{ID: "embedding-model", Object: "model"},
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(modelsResp)
+			return
+		}
+
 		if r.URL.Path != "/v1/embeddings" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)

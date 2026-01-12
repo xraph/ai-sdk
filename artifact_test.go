@@ -133,9 +133,15 @@ func TestArtifactRegistry(t *testing.T) {
 		// Create a fresh registry for this test
 		filterRegistry := NewArtifactRegistry(nil, nil)
 
-		_ = filterRegistry.Create(NewCodeArtifact("code1", "go", "package main"))
-		_ = filterRegistry.Create(NewCodeArtifact("code2", "python", "print('hi')"))
-		_ = filterRegistry.Create(NewDocumentArtifact("doc1", "# Title"))
+		if err := filterRegistry.Create(NewCodeArtifact("code1", "go", "package main")); err != nil {
+			t.Fatalf("error creating code1: %v", err)
+		}
+		if err := filterRegistry.Create(NewCodeArtifact("code2", "python", "print('hi')")); err != nil {
+			t.Fatalf("error creating code2: %v", err)
+		}
+		if err := filterRegistry.Create(NewDocumentArtifact("doc1", "# Title")); err != nil {
+			t.Fatalf("error creating doc1: %v", err)
+		}
 
 		// List all
 		all := filterRegistry.List(nil)
