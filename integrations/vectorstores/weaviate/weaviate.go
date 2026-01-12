@@ -8,14 +8,6 @@ import (
 	sdk "github.com/xraph/ai-sdk"
 	logger "github.com/xraph/go-utils/log"
 	"github.com/xraph/go-utils/metrics"
-	
-	"github.com/go-openapi/strfmt"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/auth"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/data/replication"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/models"
 )
 
 // WeaviateVectorStore implements VectorStore using Weaviate's official v4 Go SDK.
@@ -127,24 +119,23 @@ func (w *WeaviateVectorStore) ensureClass(ctx context.Context, vectorCfg *Vector
 		return nil
 	}
 
-	// Create class schema
-	class := &models.Class{
-		Class:       w.className,
-		Description: "Vector store class for Forge AI SDK",
-		Vectorizer:  "none", // We provide our own vectors
+	// Create class schema using raw JSON
+	classSchema := map[string]interface{}{
+		"class":       w.className,
+		"description": "Vector store class for Forge AI SDK",
+		"vectorizer":  "none", // We provide our own vectors
 	}
 
 	// Add vector configuration if provided
 	if vectorCfg != nil {
-		vectorIndexConfig := map[string]interface{}{
+		classSchema["vectorIndexConfig"] = map[string]interface{}{
 			"distance": vectorCfg.Distance,
 		}
-		class.VectorIndexConfig = vectorIndexConfig
 	}
 
 	// Create class
 	err = w.client.Schema().ClassCreator().
-		WithClass(class).
+		WithClass(classSchema).
 		Do(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create class: %w", err)
@@ -181,16 +172,16 @@ func (w *WeaviateVectorStore) Upsert(ctx context.Context, vectors []sdk.Vector) 
 			return fmt.Errorf("vector values cannot be empty for ID %s", v.ID)
 		}
 
-		// Create object
-		obj := &models.Object{
-			Class: w.className,
-			ID:    strfmt.UUID(v.ID),
-			Vector: toFloat32(v.Values),
+		// Create object as map
+		obj := map[string]interface{}{
+			"class":  w.className,
+			"id":     v.ID,
+			"vector": toFloat32(v.Values),
 		}
 
 		// Add properties (metadata)
 		if v.Metadata != nil {
-			obj.Properties = v.Metadata
+			obj["properties"] = v.Metadata
 		}
 
 		batch = batch.WithObjects(obj)

@@ -272,4 +272,3 @@ func (p *Plan) Clone() *Plan {
 
 	return clone
 }
-

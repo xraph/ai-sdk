@@ -12,6 +12,9 @@ import (
 	"github.com/xraph/ai-sdk/integrations/vectorstores/qdrant"
 )
 
+// Build with: go run main.go
+// Or from integrations/: go run examples/vectorstores/main.go
+
 func main() {
 	ctx := context.Background()
 

@@ -324,4 +324,3 @@ func generatePlanID() string {
 func generateStepID(planID string, index int) string {
 	return fmt.Sprintf("%s_step_%d", planID, index)
 }
-

@@ -18,7 +18,7 @@ import (
 type ReactStrategy struct {
 	// Configuration
 	maxIterations       int
-	reflectionInterval  int  // Reflect every N steps
+	reflectionInterval  int // Reflect every N steps
 	confidenceThreshold float64
 	timeout             time.Duration
 
@@ -32,7 +32,7 @@ type ReactStrategy struct {
 	reflections []ReflectionResult
 
 	// Prompt templates
-	reasoningPrompt string
+	reasoningPrompt  string
 	reflectionPrompt string
 }
 
@@ -97,12 +97,12 @@ func (s *ReactStrategy) Execute(ctx context.Context, agent *EnhancedAgent, input
 	defer cancel()
 
 	execution := &AgentExecution{
-		ID:          generateExecutionID(),
-		AgentID:     agent.ID,
-		StartTime:   startTime,
-		Status:      ExecutionStatusRunning,
-		Steps:       make([]*AgentStep, 0),
-		Metadata:    make(map[string]any),
+		ID:        generateExecutionID(),
+		AgentID:   agent.ID,
+		StartTime: startTime,
+		Status:    ExecutionStatusRunning,
+		Steps:     make([]*AgentStep, 0),
+		Metadata:  make(map[string]any),
 	}
 
 	// Clear previous traces
@@ -660,4 +660,3 @@ Provide:
 - Specific issues found
 - Suggestions for improvement
 - Whether to replan from scratch`
-

@@ -101,4 +101,3 @@ type StrategyConfig struct {
 	// Metadata for strategy-specific config
 	Metadata map[string]any
 }
-

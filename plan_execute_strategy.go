@@ -101,12 +101,12 @@ func (s *PlanExecuteStrategy) Execute(ctx context.Context, agent *EnhancedAgent,
 	defer cancel()
 
 	execution := &AgentExecution{
-		ID:          generateExecutionID(),
-		AgentID:     agent.ID,
-		StartTime:   startTime,
-		Status:      ExecutionStatusRunning,
-		Steps:       make([]*AgentStep, 0),
-		Metadata:    make(map[string]any),
+		ID:        generateExecutionID(),
+		AgentID:   agent.ID,
+		StartTime: startTime,
+		Status:    ExecutionStatusRunning,
+		Steps:     make([]*AgentStep, 0),
+		Metadata:  make(map[string]any),
 	}
 
 	if s.logger != nil {
@@ -878,4 +878,3 @@ func (s *PlanExecuteStrategy) GetCurrentPlan() *Plan {
 func (s *PlanExecuteStrategy) GetPlanHistory() []*Plan {
 	return s.planHistory
 }
-

@@ -326,5 +326,3 @@ func (a *ReactAgent) getToolDescription() string {
 
 	return desc
 }
-
-
