@@ -8,7 +8,7 @@ import (
 	sdk "github.com/xraph/ai-sdk"
 	logger "github.com/xraph/go-utils/log"
 	"github.com/xraph/go-utils/metrics"
-	
+
 	"github.com/qdrant/go-client/qdrant"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -27,17 +27,17 @@ type Config struct {
 	// Required
 	Host           string // Qdrant host (e.g., "localhost:6334")
 	CollectionName string // Collection name
-	
+
 	// Optional
-	APIKey         string        // API key for Qdrant Cloud
-	UseTLS         bool          // Use TLS (default: false for local, true for cloud)
-	Timeout        time.Duration // gRPC timeout (default: 30s)
-	VectorSize     uint64        // Vector dimensions (created on first insert if 0)
-	Distance       string        // Distance metric: "cosine", "euclidean", "dot" (default: "cosine")
-	
+	APIKey     string        // API key for Qdrant Cloud
+	UseTLS     bool          // Use TLS (default: false for local, true for cloud)
+	Timeout    time.Duration // gRPC timeout (default: 30s)
+	VectorSize uint64        // Vector dimensions (created on first insert if 0)
+	Distance   string        // Distance metric: "cosine", "euclidean", "dot" (default: "cosine")
+
 	// Observability
-	Logger         logger.Logger
-	Metrics        metrics.Metrics
+	Logger  logger.Logger
+	Metrics metrics.Metrics
 }
 
 // NewQdrantVectorStore creates a new Qdrant-based vector store.
@@ -68,10 +68,10 @@ func NewQdrantVectorStore(ctx context.Context, cfg Config) (*QdrantVectorStore, 
 
 	// Create Qdrant client
 	client, err := qdrant.NewClient(&qdrant.Config{
-		Host: cfg.Host,
-		Port: 0, // Port is included in Host
-		APIKey: cfg.APIKey,
-		UseTLS: cfg.UseTLS,
+		Host:        cfg.Host,
+		Port:        0, // Port is included in Host
+		APIKey:      cfg.APIKey,
+		UseTLS:      cfg.UseTLS,
 		GrpcOptions: dialOpts,
 	})
 	if err != nil {
@@ -255,8 +255,8 @@ func (q *QdrantVectorStore) Query(ctx context.Context, vector []float64, limit i
 				},
 			},
 		},
-		Filter:     filterCondition,
-		Limit:      uint64Ptr(uint64(limit)),
+		Filter: filterCondition,
+		Limit:  uint64Ptr(uint64(limit)),
 		WithPayload: &qdrant.WithPayloadSelector{
 			SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true},
 		},
@@ -443,4 +443,3 @@ func boolPtr(b bool) *bool {
 func uint64Ptr(u uint64) *uint64 {
 	return &u
 }
-

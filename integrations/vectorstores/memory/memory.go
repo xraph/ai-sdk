@@ -266,4 +266,3 @@ func matchesFilter(metadata map[string]any, filter map[string]any) bool {
 	}
 	return true
 }
-

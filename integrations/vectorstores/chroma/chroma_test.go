@@ -329,4 +329,3 @@ func TestChromaVectorStore_Close(t *testing.T) {
 		t.Errorf("Close() error = %v", err)
 	}
 }
-

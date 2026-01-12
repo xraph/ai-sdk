@@ -265,4 +265,3 @@ func TestPostgresStateStore_Count(t *testing.T) {
 		t.Errorf("Count() returned negative value: %d", count)
 	}
 }
-

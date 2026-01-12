@@ -297,4 +297,3 @@ func TestMemoryStateStore_Concurrent(t *testing.T) {
 		<-done
 	}
 }
-

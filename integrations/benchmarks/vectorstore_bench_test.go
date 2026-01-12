@@ -125,4 +125,3 @@ func BenchmarkVectorStore_Memory(b *testing.B) {
 // Note: Additional vector store benchmarks (pgvector, qdrant, pinecone, etc.)
 // would follow the same pattern. They are commented out as they require
 // running services. Use integration tests with -bench flag for those.
-

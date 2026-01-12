@@ -140,4 +140,3 @@ func TestCohereEmbeddings_Embed(t *testing.T) {
 		}
 	}
 }
-

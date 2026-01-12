@@ -183,4 +183,3 @@ func demoPinecone(ctx context.Context, vectors []sdk.Vector) {
 	stats, _ := store.Stats(ctx)
 	fmt.Printf("Total vectors in index: %d\n", stats.TotalVectorCount)
 }
-

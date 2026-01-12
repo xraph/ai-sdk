@@ -121,7 +121,7 @@ func (c *CohereEmbeddings) Embed(ctx context.Context, texts []string) ([]sdk.Vec
 	if c.metrics != nil {
 		c.metrics.Counter("forge.integrations.cohere.embed",
 			metrics.WithLabel("model", c.model)).Add(float64(len(vectors)))
-		
+
 		// Track tokens if available
 		if resp.Meta != nil && resp.Meta.BilledUnits != nil && resp.Meta.BilledUnits.InputTokens != nil {
 			c.metrics.Counter("forge.integrations.cohere.tokens",
@@ -158,4 +158,3 @@ func getModelDimensions(model string) (int, error) {
 		return 0, fmt.Errorf("unknown model: %s", model)
 	}
 }
-

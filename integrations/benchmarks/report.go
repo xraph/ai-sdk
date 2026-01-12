@@ -11,11 +11,11 @@ import (
 
 // BenchmarkResult represents a single benchmark result.
 type BenchmarkResult struct {
-	Name       string
-	Iterations int
-	NsPerOp    float64
-	MBPerSec   float64
-	BytesPerOp int64
+	Name        string
+	Iterations  int
+	NsPerOp     float64
+	MBPerSec    float64
+	BytesPerOp  int64
 	AllocsPerOp int64
 }
 
@@ -23,7 +23,7 @@ type BenchmarkResult struct {
 func ParseBenchmarkOutput(r io.Reader) ([]BenchmarkResult, error) {
 	scanner := bufio.NewScanner(r)
 	var results []BenchmarkResult
-	
+
 	// Regex to parse benchmark lines
 	// Example: BenchmarkVectorStore_Memory/Upsert/Batch10-8   100000   10234 ns/op   1234 B/op   12 allocs/op
 	benchRegex := regexp.MustCompile(`^Benchmark(\S+)\s+(\d+)\s+(\d+\.?\d*)\s+ns/op(?:\s+(\d+\.?\d*)\s+MB/s)?(?:\s+(\d+)\s+B/op)?(?:\s+(\d+)\s+allocs/op)?`)
@@ -41,7 +41,7 @@ func ParseBenchmarkOutput(r io.Reader) ([]BenchmarkResult, error) {
 
 		fmt.Sscanf(matches[2], "%d", &result.Iterations)
 		fmt.Sscanf(matches[3], "%f", &result.NsPerOp)
-		
+
 		if matches[4] != "" {
 			fmt.Sscanf(matches[4], "%f", &result.MBPerSec)
 		}
@@ -115,7 +115,7 @@ func GenerateMarkdownReport(results []BenchmarkResult) string {
 
 	// Add summary statistics
 	sb.WriteString("## Summary\n\n")
-	
+
 	var totalNs float64
 	var fastest, slowest BenchmarkResult
 	for i, r := range results {
@@ -177,4 +177,3 @@ func GenerateComparisonTable(results []BenchmarkResult, operation string) string
 
 	return sb.String()
 }
-

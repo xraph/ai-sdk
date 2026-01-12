@@ -32,7 +32,7 @@ type cacheEntry struct {
 
 // Config provides configuration for the MemoryCacheStore.
 type Config struct {
-	MaxSize int           // Maximum number of entries (0 = unlimited)
+	MaxSize int // Maximum number of entries (0 = unlimited)
 	Logger  logger.Logger
 	Metrics metrics.Metrics
 }
@@ -67,7 +67,7 @@ func (m *MemoryCacheStore) Get(ctx context.Context, key string) ([]byte, bool, e
 
 	if !exists {
 		if m.metrics != nil {
-			m.metrics.Counter("forge.integrations.memory.cache.get", 
+			m.metrics.Counter("forge.integrations.memory.cache.get",
 				metrics.WithLabel("hit", "false")).Inc()
 		}
 		return nil, false, nil
@@ -343,4 +343,3 @@ func (l *lruList) remove(node *lruNode) {
 		l.tail = node.prev
 	}
 }
-

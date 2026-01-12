@@ -103,4 +103,3 @@ type QueryRequest struct {
 type DeleteRequest struct {
 	IDs []string
 }
-

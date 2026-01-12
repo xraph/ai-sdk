@@ -24,13 +24,13 @@ type OpenAIEmbeddings struct {
 type Config struct {
 	// Required
 	APIKey string // OpenAI API key
-	
+
 	// Optional
-	Model       string // Model name (default: "text-embedding-3-small")
-	Dimensions  int    // Embedding dimensions (model-specific)
-	BaseURL     string // Custom API base URL
-	OrgID       string // Organization ID
-	
+	Model      string // Model name (default: "text-embedding-3-small")
+	Dimensions int    // Embedding dimensions (model-specific)
+	BaseURL    string // Custom API base URL
+	OrgID      string // Organization ID
+
 	// Observability
 	Logger  logger.Logger
 	Metrics metrics.Metrics
@@ -195,4 +195,3 @@ func toFloat64(values []float32) []float64 {
 	}
 	return result
 }
-

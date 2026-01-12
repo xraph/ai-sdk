@@ -23,14 +23,14 @@ type Config struct {
 	// Required
 	Host      string // Weaviate host (e.g., "localhost:8080")
 	ClassName string // Class name for vectors
-	
+
 	// Optional
-	Scheme       string        // http or https (default: http)
-	APIKey       string        // API key for authentication
+	Scheme       string            // http or https (default: http)
+	APIKey       string            // API key for authentication
 	Headers      map[string]string // Additional headers
-	Timeout      time.Duration // Request timeout (default: 30s)
-	VectorConfig *VectorConfig // Vector configuration
-	
+	Timeout      time.Duration     // Request timeout (default: 30s)
+	VectorConfig *VectorConfig     // Vector configuration
+
 	// Observability
 	Logger  logger.Logger
 	Metrics metrics.Metrics
@@ -429,4 +429,3 @@ func buildWeaviateFilter(filter map[string]any) *filters.WhereBuilder {
 
 	return result
 }
-

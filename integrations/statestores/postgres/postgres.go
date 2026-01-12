@@ -23,8 +23,8 @@ type PostgresStateStore struct {
 
 // Config provides configuration for the PostgresStateStore.
 type Config struct {
-	ConnString string        // Required: PostgreSQL connection string
-	TableName  string        // Optional: Table name (default: "agent_states")
+	ConnString string // Required: PostgreSQL connection string
+	TableName  string // Optional: Table name (default: "agent_states")
 	Logger     logger.Logger
 	Metrics    metrics.Metrics
 }
@@ -344,4 +344,3 @@ func (p *PostgresStateStore) Count(ctx context.Context) (int64, error) {
 
 	return count, nil
 }
-

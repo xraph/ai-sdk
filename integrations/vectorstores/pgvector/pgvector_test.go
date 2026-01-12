@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	sdk "github.com/xraph/ai-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	sdk "github.com/xraph/ai-sdk"
 )
 
 // Note: These are unit tests with mocked behavior.
@@ -114,4 +114,3 @@ func BenchmarkVectorToString(b *testing.B) {
 		_ = vectorToString(vector)
 	}
 }
-

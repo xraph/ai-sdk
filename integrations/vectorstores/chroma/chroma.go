@@ -364,9 +364,8 @@ func (c *ChromaVectorStore) Close() error {
 
 // chromaQueryResponse represents the response from ChromaDB query API.
 type chromaQueryResponse struct {
-	IDs       [][]string           `json:"ids"`
-	Distances [][]float64          `json:"distances"`
-	Metadatas [][]map[string]any   `json:"metadatas"`
-	Documents [][]string           `json:"documents,omitempty"`
+	IDs       [][]string         `json:"ids"`
+	Distances [][]float64        `json:"distances"`
+	Metadatas [][]map[string]any `json:"metadatas"`
+	Documents [][]string         `json:"documents,omitempty"`
 }
-

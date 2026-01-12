@@ -3,14 +3,14 @@ package qdrant
 import (
 	"testing"
 
-	sdk "github.com/xraph/ai-sdk"
 	"github.com/stretchr/testify/assert"
+	sdk "github.com/xraph/ai-sdk"
 )
 
 func TestToFloat32(t *testing.T) {
 	input := []float64{1.0, 2.5, 3.14159}
 	output := toFloat32(input)
-	
+
 	assert.Len(t, output, len(input))
 	for i := range input {
 		assert.InDelta(t, input[i], float64(output[i]), 0.0001)
@@ -53,4 +53,3 @@ func BenchmarkToFloat32(b *testing.B) {
 		_ = toFloat32(vector)
 	}
 }
-

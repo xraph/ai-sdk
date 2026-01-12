@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	sdk "github.com/xraph/ai-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	sdk "github.com/xraph/ai-sdk"
 )
 
 func TestMemoryVectorStore_Upsert(t *testing.T) {
@@ -451,4 +451,3 @@ func BenchmarkMemoryVectorStore_Query(b *testing.B) {
 		_, _ = store.Query(ctx, query, 10, nil)
 	}
 }
-

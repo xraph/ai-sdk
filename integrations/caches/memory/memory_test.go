@@ -234,4 +234,3 @@ func TestMemoryCacheStore_Size(t *testing.T) {
 		t.Errorf("Size() = %d, want 1", store.Size())
 	}
 }
-

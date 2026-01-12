@@ -8,7 +8,7 @@ import (
 	sdk "github.com/xraph/ai-sdk"
 	logger "github.com/xraph/go-utils/log"
 	"github.com/xraph/go-utils/metrics"
-	
+
 	"github.com/pinecone-io/go-pinecone/pinecone"
 )
 
@@ -26,12 +26,12 @@ type Config struct {
 	// Required
 	APIKey    string // Pinecone API key
 	IndexName string // Index name (must exist)
-	
+
 	// Optional
 	Host      string        // Index host (auto-detected if empty)
 	Namespace string        // Namespace for data isolation
 	Timeout   time.Duration // Request timeout (default: 30s)
-	
+
 	// Observability
 	Logger  logger.Logger
 	Metrics metrics.Metrics
@@ -300,4 +300,3 @@ func convertToPineconeFilter(filter map[string]any) pinecone.Metadata {
 	}
 	return result
 }
-

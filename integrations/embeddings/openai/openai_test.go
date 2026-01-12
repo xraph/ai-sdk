@@ -3,14 +3,14 @@ package openai
 import (
 	"testing"
 
-	sdk "github.com/xraph/ai-sdk"
 	"github.com/stretchr/testify/assert"
+	sdk "github.com/xraph/ai-sdk"
 )
 
 func TestToFloat64(t *testing.T) {
 	input := []float32{1.0, 2.5, 3.14159}
 	output := toFloat64(input)
-	
+
 	assert.Len(t, output, len(input))
 	for i := range input {
 		assert.InDelta(t, float64(input[i]), output[i], 0.0001)
@@ -74,4 +74,3 @@ func TestConfig_Validation(t *testing.T) {
 		assert.Contains(t, err.Error(), "API key is required")
 	})
 }
-

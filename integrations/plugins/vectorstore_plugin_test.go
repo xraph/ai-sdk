@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	sdk "github.com/xraph/ai-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	sdk "github.com/xraph/ai-sdk"
 )
 
 // MockVectorStore for testing
@@ -130,4 +130,3 @@ func TestVectorStorePlugin_UnsupportedOperation(t *testing.T) {
 func TestVectorStorePlugin_ImplementsInterface(t *testing.T) {
 	var _ sdk.Plugin = (*VectorStorePlugin)(nil)
 }
-
