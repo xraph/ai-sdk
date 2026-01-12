@@ -489,7 +489,9 @@ func TestBulkhead_ConcurrencyLimit(t *testing.T) {
 	)
 
 	for range 5 {
-		wg.Go(func() {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 			_ = bh.Execute(context.Background(), func(ctx context.Context) error {
 				current := atomic.AddInt32(&maxConcurrent, 1)
 				defer atomic.AddInt32(&maxConcurrent, -1)
@@ -502,7 +504,7 @@ func TestBulkhead_ConcurrencyLimit(t *testing.T) {
 
 				return nil
 			})
-		})
+		}()
 	}
 
 	wg.Wait()
@@ -649,7 +651,9 @@ func TestRateLimiterWithBulkhead(t *testing.T) {
 	successCount := int32(0)
 
 	for range 3 {
-		wg.Go(func() {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 			if rl.Allow() {
 				_ = bh.Execute(context.Background(), func(ctx context.Context) error {
 					atomic.AddInt32(&successCount, 1)
@@ -658,7 +662,7 @@ func TestRateLimiterWithBulkhead(t *testing.T) {
 					return nil
 				})
 			}
-		})
+		}()
 	}
 
 	wg.Wait()

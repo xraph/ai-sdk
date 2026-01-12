@@ -194,9 +194,9 @@ func (b *ReactAgentBuilder) Build() (*ReactAgent, error) {
 		baseBuilder.WithGuardrails(b.guardrails)
 	}
 
-	if b.stateStore != nil {
-		// Enhanced agent doesn't have state store, so we skip it for now
-	}
+	// Note: Enhanced agent doesn't use state store directly in ReAct context
+	// State is managed through the strategy's memory manager instead
+	_ = b.stateStore // Prevent unused variable warning
 
 	enhancedAgent, err := baseBuilder.Build()
 	if err != nil {

@@ -505,7 +505,7 @@ func (s *ReactStrategy) parseReasoningResponse(content string) (thought, action 
 			_ = json.Unmarshal([]byte(inputStr), &actionInput)
 		} else if strings.HasPrefix(strings.ToLower(line), "confidence:") {
 			confStr := strings.TrimSpace(strings.TrimPrefix(strings.ToLower(line), "confidence:"))
-			fmt.Sscanf(confStr, "%f", &confidence)
+			_, _ = fmt.Sscanf(confStr, "%f", &confidence) // Best effort parsing
 		}
 	}
 
@@ -569,7 +569,7 @@ func (s *ReactStrategy) extractScore(content string) float64 {
 	// Try to find a numeric score
 	var score float64
 	if strings.Contains(content, "score:") {
-		fmt.Sscanf(content, "score: %f", &score)
+		_, _ = fmt.Sscanf(content, "score: %f", &score) // Best effort parsing
 	}
 	// Default based on quality
 	if score == 0 {

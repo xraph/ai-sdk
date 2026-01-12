@@ -809,7 +809,7 @@ func (s *PlanExecuteStrategy) extractVerificationScore(content string) float64 {
 	// Simple extraction - look for score patterns
 	var score float64
 	if strings.Contains(content, "score:") {
-		fmt.Sscanf(content, "score: %f", &score)
+		_, _ = fmt.Sscanf(content, "score: %f", &score) // Best effort parsing
 	}
 
 	// Default based on keywords
