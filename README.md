@@ -1,8 +1,10 @@
 # 🚀 Forge AI SDK
 
-> **Enterprise-Grade AI SDK for Go** - Beyond Vercel AI SDK
+> **Enterprise-Grade AI SDK for Go** - Zero-Cost Guardrails, Native Concurrency, Production-First
 
-A production-ready, type-safe AI SDK for Go with advanced features like multi-tier memory, RAG, workflow orchestration, cost management, and enterprise guardrails.
+A production-ready, type-safe AI SDK for Go with advanced features like multi-tier memory, RAG, workflow orchestration, cost management, and enterprise guardrails. Built for high-throughput microservices with zero external dependencies.
+
+> ⚠️ **Status**: Alpha - API may change. Test coverage 81%+. Suitable for evaluation and non-critical production use.
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![Test Coverage](https://img.shields.io/badge/coverage-81%25-brightgreen)](./tests)
@@ -367,7 +369,15 @@ clean := guardrails.RedactPII("My email is john@example.com")
 - ✅ **Offline-capable**: Works in air-gapped environments
 - ✅ **Predictable**: Deterministic behavior, no ML black boxes
 
-**Comparison**: Vercel AI SDK uses Portkey integration for guardrails (50+ ML-based checks, $99-$499/mo). Forge provides free, built-in protection with <1ms overhead.
+**Comparison with Vercel AI SDK (v5):**
+- **Vercel approach**: Middleware + external services (Portkey: 250+ LLMs, 50+ guardrails, $99-$499/mo)
+  - Pros: ML-based detection, multi-language support, continuously updated
+  - Cons: API latency (50-200ms), external dependency, monthly costs
+- **Forge approach**: Native built-in (regex/pattern-based, free)
+  - Pros: <1ms latency, no external calls, works offline, zero cost, privacy
+  - Cons: Limited to patterns (not ML), primarily English, manual updates
+
+**Best fit**: Use Forge for cost-sensitive, high-throughput, or air-gapped deployments. Use Vercel + Portkey for advanced ML-based detection and compliance requirements.
 
 ### 10. Cost Management
 
@@ -558,32 +568,42 @@ func buildProductionAgent() *sdk.Agent {
 
 ## 🤝 Comparison
 
+> **Last Updated**: January 2026
+> 
+> **Major Updates**:
+> - Vercel AI SDK v5: Multi-modal streaming (audio/video), Agent class, unified tool calling
+> - Vercel AI SDK v4.2: Stable middleware support for guardrails/caching
+> - LangChain: 100+ vector store integrations, LangGraph production-ready
+> - Forge AI SDK: Native guardrails, 4-tier memory, cost optimization
+
 ### Framework Comparison (2026)
 
-| Feature | Vercel AI SDK | LangChain (Python) | LangChain.js | **Forge AI SDK** |
-|---------|---------------|-------------------|--------------|------------------|
+| Feature | Vercel AI SDK (v5) | LangChain (Python) | LangChain.js | **Forge AI SDK** |
+|---------|-------------------|-------------------|--------------|------------------|
 | **Language** | TypeScript/JS | Python | TypeScript/JS | **Go** |
 | **Type Safety** | ✅ TypeScript | ⚠️ Type hints | ✅ TypeScript | **✅✅ Generics + Runtime** |
-| **Structured Output** | ✅ Zod schemas | ✅ Pydantic | ✅ Zod | **✅ Go structs + validation** |
-| **Streaming** | ✅ Text + Objects | ✅ Text | ✅ Text + Objects | **✅ Text + Objects + UI** |
+| **Structured Output** | ✅✅ Zod + native schemas | ✅ Pydantic | ✅ Zod | **✅ Go structs + validation** |
+| **Streaming** | ✅✅ Multi-modal (SSE) | ✅ Text + tool calls | ✅ Text + Objects | **✅ Text + Objects + UI** |
+| **Multi-Modal** | ✅✅ Text, image, audio, video | ⚠️ Via integrations | ⚠️ Via integrations | **⚠️ Text + image only** |
 | **Memory System** | ⚠️ Basic conversation | ✅ Conversation buffer | ⚠️ Basic | **✅✅ 4-Tier + Episodic** |
 | **RAG Support** | ⚠️ Basic utilities | ✅✅ Full pipeline | ✅ Full pipeline | **✅✅ Chunking + Reranking** |
-| **Vector Stores** | ✅ Integrations | ✅✅ 50+ integrations | ✅ Many integrations | **✅ Pluggable interface** |
-| **Agents** | ⚠️ Basic tools | ✅✅ ReAct, Plan-Execute | ✅ ReAct agents | **✅ Stateful + Multi-agent** |
-| **Workflow Engine** | ❌ | ✅ LangGraph (DAG) | ✅ LangGraph | **✅ Native DAG engine** |
-| **Tool Calling** | ✅ Manual registration | ✅ Manual | ✅ Manual | **✅ Auto from Go funcs** |
-| **Cost Tracking** | ⚠️ Via AI Gateway | ⚠️ Token counting | ❌ | **✅✅ Budget + Optimization** |
-| **Guardrails** | ⚠️ Portkey integration (50+) | ⚠️ Via integrations | ❌ | **✅✅ Native built-in (free)** |
-| **Middleware** | ✅ Composable (v4.2+) | ⚠️ Basic callbacks | ⚠️ Basic | **⚠️ Direct calls only** |
+| **Vector Stores** | ✅ Integrations | ✅✅ 100+ integrations | ✅ 70+ integrations | **✅ Pluggable interface** |
+| **Agents** | ✅ Agent class (v5) | ✅✅ ReAct, Plan-Execute | ✅ ReAct agents | **✅ Stateful + Multi-agent** |
+| **Workflow Engine** | ⚠️ Agent primitives | ✅✅ LangGraph (prod) | ✅ LangGraph.js | **✅ Native DAG engine** |
+| **Tool Calling** | ✅✅ Unified 100+ models | ✅ Manual | ✅ Manual | **✅✅ Auto from Go funcs** |
+| **Cost Tracking** | ⚠️ Via AI Gateway | ⚠️ Token counting | ⚠️ Token counting | **✅✅ Budget + Optimization** |
+| **Guardrails** | ✅ Middleware + Portkey | ⚠️ Via integrations | ⚠️ Via integrations | **✅✅ Native built-in (free)** |
+| **Middleware** | ✅✅ Stable (v4.2+) | ⚠️ Basic callbacks | ⚠️ Basic callbacks | **⚠️ Direct calls only** |
 | **A/B Testing** | ❌ | ❌ | ❌ | **✅ Prompt variants** |
-| **Resilience** | ⚠️ Via AI Gateway | ⚠️ Basic | ⚠️ Basic retry | **✅✅ Circuit breaker + more** |
-| **Observability** | ⚠️ Callbacks | ✅ LangSmith integration | ⚠️ Callbacks | **✅ Native tracing + metrics** |
-| **Caching** | ✅ Semantic (Portkey) | ⚠️ Via Redis | ⚠️ Via Redis | **✅ Semantic + Provider** |
-| **Provider Support** | ✅✅ 100+ via Gateway | ✅✅ Many providers | ✅✅ 15+ providers | **✅ 5+ (extensible)** |
-| **External Dependencies** | ⚠️ Requires paid services | ⚠️ Many optional deps | ⚠️ Many deps | **✅✅ Zero for core features** |
-| **Production Ready** | ✅ Battle-tested | ✅ Mature ecosystem | ✅ Growing | **✅ Alpha** |
+| **Resilience** | ⚠️ Via AI Gateway | ⚠️ Basic retry | ⚠️ Basic retry | **✅✅ Circuit breaker + more** |
+| **Observability** | ✅ OpenTelemetry | ✅✅ LangSmith (prod) | ✅ LangSmith | **✅ Native tracing + metrics** |
+| **Caching** | ✅✅ Prompt cache + Portkey | ✅ Via Redis/LangChain | ⚠️ Via Redis | **✅ Semantic + Provider** |
+| **Provider Support** | ✅✅ 100+ via Gateway/40+ native | ✅✅ Many providers | ✅✅ 30+ providers | **✅ 5+ (extensible)** |
+| **Framework Support** | ✅✅ React, Vue, Svelte, Angular | ❌ Backend only | ✅ Node.js/Edge | **❌ Backend only** |
+| **External Dependencies** | ⚠️ Portkey for advanced features | ⚠️ Many optional deps | ⚠️ Many deps | **✅✅ Zero for core features** |
+| **Production Ready** | ✅✅ Battle-tested (v5 stable) | ✅✅ Mature ecosystem | ✅ Mature | **⚠️ Alpha** |
 | **Performance** | ⚠️ Node.js overhead | ⚠️ Python GIL | ⚠️ Node.js overhead | **✅✅ Native concurrency** |
-| **Best For** | Next.js apps | Python ML stack | JS/TS projects | **Go microservices** |
+| **Best For** | Next.js, React apps | Python ML stack | JS/TS full-stack | **Go microservices** |
 
 ### Key Differentiators
 
@@ -595,13 +615,17 @@ func buildProductionAgent() *sdk.Agent {
 - ✅ **Single binary**: Easy deployment, no runtime dependencies, works offline/air-gapped
 - ✅ **Production-first**: Structured logging, distributed tracing, health checks built-in
 
-**Vercel AI SDK excels at:**
-- ✅ **Composable middleware** (v4.2+): Elegant pattern for guardrails, caching, logging
-- ✅ **AI Gateway**: Unified API to 100+ models with automatic fallback and usage tracking
-- ✅ **Portkey integration**: 50+ ML-based guardrails, semantic caching (requires paid plan)
-- ✅ **TypeScript DX**: Excellent developer experience with React Server Components
-- ✅ **Large community**: Battle-tested with Next.js ecosystem
-- ✅ **Broad provider support**: 100+ models across OpenAI, Anthropic, Google, AWS, Azure, etc.
+**Vercel AI SDK (v5) excels at:**
+- ✅ **Multi-modal streaming**: Native support for text, images, audio, video via unified API (SSE)
+- ✅ **Agent primitives** (v5): `Agent` class with `prepareStep`, `stopWhen` for dynamic workflows
+- ✅ **Composable middleware** (v4.2+): Stable pattern for guardrails, caching, logging across providers
+- ✅ **AI Gateway**: Unified API to 100+ models with automatic fallback, usage tracking, billing
+- ✅ **Framework-agnostic**: React, Vue, Svelte, Angular support with feature parity
+- ✅ **Unified tool calling**: Standardized across 100+ models from 25+ providers
+- ✅ **OpenTelemetry**: Native observability and distributed tracing
+- ✅ **Portkey integration**: 50+ ML-based guardrails (requires $99-$499/mo)
+- ✅ **Production-ready**: Battle-tested with Next.js ecosystem, v5 stable release
+- ✅ **UI Elements library**: Pre-built React components for AI interfaces
 
 **LangChain excels at:**
 - ✅ **Massive ecosystem**: 100+ integrations with vector stores, tools, and services
@@ -612,22 +636,52 @@ func buildProductionAgent() *sdk.Agent {
 
 ### Architecture Philosophy
 
-**Forge AI SDK (Go)** prioritizes **self-contained, cost-effective operations** with native implementations of core features. Best for teams that want zero external dependencies, predictable costs, and maximum performance.
+**Forge AI SDK (Go)** prioritizes **self-contained, cost-effective operations** with native implementations of core features. Zero external dependencies for core functionality. Best for: Go microservices, cost-conscious teams, air-gapped/enterprise environments, high-throughput systems (1000+ req/sec).
 
-**Vercel AI SDK** prioritizes **composability and ecosystem integration** via middleware and external services. Best for Next.js teams that value convenience and don't mind API costs.
+**Vercel AI SDK (v5)** prioritizes **developer experience and multi-modal capabilities** with framework-first design. Best for: Next.js/React applications, teams needing multi-modal AI (audio/video), rapid prototyping, unified access to 100+ models, frontend-focused development.
 
-**LangChain** prioritizes **flexibility and research velocity** with extensive integrations. Best for ML/research teams building complex, experimental AI applications.
+**LangChain** prioritizes **flexibility and ecosystem maturity** with 100+ integrations and production-grade tooling (LangGraph, LangSmith). Best for: Python ML teams, complex agent workflows, research and experimentation, teams heavily invested in Python ecosystem.
 
 ### Cost Comparison (Monthly)
 
-| Scenario | Forge AI SDK | Vercel AI SDK (w/ Portkey) | Notes |
-|----------|-------------|----------------------------|-------|
-| **Guardrails** | $0 | $99-$499/mo | Forge: Native regex/patterns<br>Vercel: Requires Portkey subscription |
-| **100K requests/day** | $0 SDK cost | $0-$99 SDK cost | Vercel Gateway usage tracking included in some plans |
-| **Observability** | $0 (built-in) | $0-$299/mo | LangSmith equivalent features built-in |
-| **Total Infrastructure** | **LLM costs only** | **LLM + $99-$799/mo** | Forge has zero incremental costs |
+| Feature | Forge AI SDK | Vercel AI SDK | LangChain (Python) | Notes |
+|---------|-------------|---------------|-------------------|-------|
+| **SDK/License** | $0 | $0 | $0 | All open-source |
+| **Guardrails** | $0 (native) | $99-$499/mo (Portkey) | $0-$499/mo (via integrations) | Forge: Built-in, Vercel/LangChain: External |
+| **Observability** | $0 (built-in) | $0 (OpenTelemetry) | $0-$299/mo (LangSmith) | LangSmith: $39-$299/mo for prod features |
+| **AI Gateway** | N/A | $0 (usage tracking) | N/A | Vercel Gateway included, future billing TBD |
+| **Caching** | $0 (native) | $0-$99/mo (Portkey) | Redis hosting costs | Forge: No external dependencies |
+| **Vector Store** | External (user choice) | External (user choice) | External (user choice) | Pinecone: $0-$90/mo, Weaviate: self-host |
+| **100K req/day** | **LLM costs only** | **LLM + $0-$599/mo** | **LLM + $0-$598/mo** | Depends on optional services |
 
-**ROI Example**: At 100K daily requests with guardrails, Forge AI SDK saves **$1,188-$5,988/year** vs Vercel AI SDK + Portkey.
+**Cost Scenarios:**
+
+1. **Minimal Setup** (no guardrails/observability):
+   - Forge: $0 infrastructure cost
+   - Vercel: $0 infrastructure cost  
+   - LangChain: $0-$40/mo (Redis for caching)
+
+2. **Production Setup** (guardrails + observability + caching):
+   - Forge: **$0 infrastructure cost** (all built-in)
+   - Vercel: **$99-$598/mo** (Portkey $99-$499 + optional LangSmith)
+   - LangChain: **$39-$598/mo** (LangSmith + optional guardrails + Redis)
+
+**Annual Savings**: Forge saves **$1,188-$7,176/year** vs Vercel/LangChain production setups.
+
+### Decision Matrix
+
+| Your Priority | Recommended SDK | Reason |
+|--------------|----------------|---------|
+| **Cost optimization** | Forge AI SDK | Zero infrastructure costs, no external dependencies |
+| **Go ecosystem** | Forge AI SDK | Native Go, goroutines, single binary deployment |
+| **Multi-modal AI** (audio/video) | Vercel AI SDK v5 | Best-in-class support for audio/video streaming |
+| **Frontend integration** | Vercel AI SDK v5 | React/Vue/Svelte hooks, Server Components |
+| **Python ML stack** | LangChain | Mature ecosystem, 100+ integrations, LangSmith |
+| **Complex workflows** | LangChain | LangGraph production-ready, proven patterns |
+| **High throughput** | Forge AI SDK | Native concurrency, 1000+ req/sec, low latency |
+| **Air-gapped/Enterprise** | Forge AI SDK | Works offline, no external API dependencies |
+| **Rapid prototyping** | Vercel AI SDK v5 | 100+ models via Gateway, excellent DX |
+| **Research/Experimentation** | LangChain | Flexible, extensive documentation, community |
 
 ---
 
