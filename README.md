@@ -180,6 +180,85 @@ result2, err := agent.Execute(ctx, "What do you know about me?")
 agent.SaveState(ctx)
 ```
 
+### 4a. ReAct Agents (Reasoning + Acting)
+
+```go
+// Create ReAct agent with iterative reasoning
+reactAgent, err := sdk.NewReactAgentBuilder("research_assistant").
+	WithModel("gpt-4").
+	WithProvider("openai").
+	WithSystemPrompt("You are a research assistant that thinks step-by-step.").
+	WithTools(searchTool, calculatorTool, summarizerTool).
+	WithLLMManager(llmManager).
+	WithMemoryManager(memoryManager).
+	WithMaxIterations(10).
+	WithReflectionInterval(3).    // Self-reflect every 3 steps
+	WithConfidenceThreshold(0.7). // Minimum confidence level
+	WithLogger(logger).
+	WithMetrics(metrics).
+	Build()
+
+// Execute with ReAct loop: Thought → Action → Observation → Reflection
+execution, err := reactAgent.Execute(ctx, "What are the latest breakthroughs in quantum computing and their potential applications?")
+
+// Get reasoning traces
+traces := reactAgent.GetTraces()
+for _, trace := range traces {
+	fmt.Printf("Step %d:\n", trace.Step)
+	fmt.Printf("  Thought: %s\n", trace.Thought)
+	fmt.Printf("  Action: %s\n", trace.Action)
+	fmt.Printf("  Observation: %s\n", trace.Observation)
+	fmt.Printf("  Confidence: %.2f\n", trace.Confidence)
+}
+
+// Get self-reflections
+reflections := reactAgent.GetReflections()
+for _, reflection := range reflections {
+	fmt.Printf("Quality: %s, Score: %.2f\n", reflection.Quality, reflection.Score)
+	fmt.Printf("Issues: %v\n", reflection.Issues)
+	fmt.Printf("Suggestions: %v\n", reflection.Suggestions)
+}
+```
+
+### 4b. Plan-Execute Agents
+
+```go
+// Create Plan-Execute agent for complex multi-step tasks
+planAgent, err := sdk.NewPlanExecuteAgentBuilder("project_manager").
+	WithModel("gpt-4").
+	WithProvider("openai").
+	WithSystemPrompt("You are an expert at breaking down complex tasks into plans.").
+	WithTools(fileTool, apiTool, dbTool, searchTool).
+	WithLLMManager(llmManager).
+	WithPlanStore(planStore).
+	WithMemoryManager(memoryManager).
+	WithAllowReplanning(true).    // Enable automatic replanning on failures
+	WithVerifySteps(true).         // Verify each step's output
+	WithMaxReplanAttempts(3).      // Max replanning attempts
+	WithTimeout(10 * time.Minute). // Execution timeout
+	WithLogger(logger).
+	WithMetrics(metrics).
+	Build()
+
+// Execute: Plan → Execute → Verify
+execution, err := planAgent.Execute(ctx, "Build a user authentication system with email verification and password reset")
+
+// Get the generated plan
+plan := planAgent.GetCurrentPlan()
+fmt.Printf("Plan: %s (Status: %s)\n", plan.Goal, plan.Status)
+for i, step := range plan.Steps {
+	fmt.Printf("  Step %d: %s\n", i+1, step.Description)
+	fmt.Printf("    Status: %s, Result: %v\n", step.Status, step.Result)
+	if step.Verification != nil {
+		fmt.Printf("    Verified: %v (Score: %.2f)\n", step.Verification.IsValid, step.Verification.Score)
+	}
+}
+
+// Get plan history (including replans)
+history := planAgent.GetPlanHistory()
+fmt.Printf("Total plans created: %d (including %d replans)\n", len(history), len(history)-1)
+```
+
 ### 5. Multi-Tier Memory System
 
 ```go
@@ -687,7 +766,7 @@ go test -bench=. -benchmem ./benchmarks/...
 | **Memory System** | ⚠️ Basic conversation | ✅ Conversation buffer | ⚠️ Basic | **✅✅ 4-Tier + Episodic** |
 | **RAG Support** | ⚠️ Basic utilities | ✅✅ Full pipeline | ✅ Full pipeline | **✅✅ Chunking + Reranking** |
 | **Vector Stores** | ✅ Integrations | ✅✅ 100+ integrations | ✅ 70+ integrations | **✅✅ 6 built-in + pluggable** |
-| **Agents** | ✅ Agent class (v5) | ✅✅ ReAct, Plan-Execute | ✅ ReAct agents | **✅ Stateful + Multi-agent** |
+| **Agents** | ✅ Agent class (v5) | ✅✅ ReAct, Plan-Execute | ✅ ReAct agents | **✅✅ ReAct + Plan-Execute + Reflection** |
 | **Workflow Engine** | ⚠️ Agent primitives | ✅✅ LangGraph (prod) | ✅ LangGraph.js | **✅ Native DAG engine** |
 | **Tool Calling** | ✅✅ Unified 100+ models | ✅ Manual | ✅ Manual | **✅✅ Auto from Go funcs** |
 | **Cost Tracking** | ⚠️ Via AI Gateway | ⚠️ Token counting | ⚠️ Token counting | **✅✅ Budget + Optimization** |
@@ -788,11 +867,18 @@ go test -bench=. -benchmem ./benchmarks/...
 
 ## 📖 Documentation
 
+### Core Documentation
 - [API Reference](./docs/api.md)
 - [Architecture](./docs/architecture.md)
 - [Examples](./examples/)
 - [Testing Guide](./docs/testing.md)
 - [Migration Guide](./docs/migration.md)
+
+### Agent Patterns
+- [Agent Patterns Overview](./docs/AGENT_PATTERNS.md)
+- [ReAct Agents Guide](./docs/REACT_AGENTS.md)
+- [Plan-Execute Agents Guide](./docs/PLAN_EXECUTE_AGENTS.md)
+- [Reflection & Replanning](./docs/REFLECTION_AND_REPLANNING.md)
 
 ---
 
