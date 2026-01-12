@@ -1,0 +1,1570 @@
+# AI SDK - LLM Context File
+
+> **Project**: Enterprise-Grade AI SDK for Go
+> **Purpose**: Production-ready, type-safe AI SDK with advanced features like multi-tier memory, RAG, workflow orchestration, and agentic patterns
+> **Language**: Go 1.21+
+> **Status**: Alpha (81%+ test coverage)
+
+---
+
+## Project Overview
+
+This is a comprehensive AI SDK for Go that provides:
+- Fluent API with type-safe builders
+- Structured output with Go generics
+- Enhanced streaming with reasoning steps
+- RAG (Retrieval Augmented Generation) support
+- Multi-tier memory system (Working → Short-term → Long-term → Episodic)
+- Dynamic tool system with auto-discovery
+- Workflow engine (DAG-based)
+- Three agent patterns: Basic, ReAct, Plan-Execute
+- Native safety guardrails (PII, toxicity, injection detection)
+- Cost management and optimization
+- Resilience patterns (circuit breakers, retries, rate limiting)
+- Comprehensive observability (tracing, profiling, debugging)
+
+### Key Differentiators
+- **Zero external dependencies** for core features
+- **Native Go concurrency** with goroutines
+- **Production-first design** with built-in observability
+- **Type safety** with compile-time guarantees
+- **17 production-ready integrations** (pgvector, Qdrant, Pinecone, Redis, etc.)
+
+---
+
+## Core Architecture
+
+### 1. SDK Entry Point (`sdk.go`)
+- `SDK` struct: Main entry point with builders
+- Builder pattern for all major components
+- Centralized configuration and dependency injection
+
+### 2. LLM Management (`llm/`)
+- `LLMManager`: Unified interface for multiple providers
+- Supports: OpenAI, Anthropic, Google, Cohere, Ollama
+- Provider-agnostic request/response handling
+- Streaming support with SSE
+
+### 3. Memory System (`memory.go`, `memory_*.go`)
+**Four-Tier Architecture:**
+- **Working Memory**: Limited capacity (10-20 items), immediate context
+- **Short-Term Memory**: TTL-based (24h default), recent interactions
+- **Long-Term Memory**: Persistent, high-importance memories
+- **Episodic Memory**: Grouped memories with narrative structure
+
+**Key Types:**
+```go
+type MemoryManager struct {
+    agentID       string
+    embedder      EmbeddingModel
+    vectorStore   VectorStore
+    workingMemory []MemoryEntry
+    tiers         map[MemoryTier]*MemoryTier
+}
+
+type MemoryEntry struct {
+    ID         string
+    Content    string
+    Importance float64  // 0-1
+    Timestamp  time.Time
+    Metadata   map[string]any
+    Embedding  []float64
+}
+
+type EpisodicMemory struct {
+    ID          string
+    Title       string
+    Description string
+    Memories    []string  // Memory IDs
+    Tags        []string
+    Importance  float64
+}
+```
+
+**Operations:**
+- `Store(ctx, content, importance, metadata)`: Store new memory
+- `Recall(ctx, query, tier, limit)`: Retrieve relevant memories
+- `Promote(ctx, memoryID)`: Move to higher tier
+- `CreateEpisode(ctx, episode)`: Group related memories
+- `ConsolidateMemories(ctx)`: Prune low-importance memories
+
+### 4. RAG System (`rag.go`)
+**Pipeline:**
+1. Document ingestion with chunking
+2. Embedding generation
+3. Vector storage
+4. Semantic search with reranking
+5. Context injection into prompts
+
+**Key Types:**
+```go
+type RAG struct {
+    embedder     EmbeddingModel
+    vectorStore  VectorStore
+    reranker     Reranker
+    chunkSize    int
+    chunkOverlap int
+    topK         int
+}
+```
+
+**Usage:**
+```go
+rag.IndexDocument(ctx, docID, content)
+results, _ := rag.Retrieve(ctx, query, topK)
+response, _ := rag.GenerateWithContext(ctx, generator, query, topK)
+```
+
+### 5. Tool System (`tools.go`, `toolchain.go`)
+**Auto-Discovery from Go Functions:**
+```go
+registry := NewToolRegistry(logger, metrics)
+registry.RegisterFunc("search", "Search the web", searchFunc)
+```
+
+**Tool Structure:**
+```go
+type Tool struct {
+    Name        string
+    Description string
+    Parameters  map[string]any  // JSON schema
+    Handler     ToolHandler
+    Timeout     time.Duration
+    Middleware  []ToolMiddleware
+}
+
+type ToolHandler func(ctx context.Context, params map[string]any) (any, error)
+```
+
+**Toolchain for Sequential Execution:**
+```go
+chain := NewToolchain(registry, logger)
+chain.AddStep("search", params1)
+chain.AddStep("summarize", params2)
+result, _ := chain.Execute(ctx)
+```
+
+### 6. Workflow Engine (`workflow.go`)
+**DAG-Based Orchestration:**
+```go
+type Workflow struct {
+    ID        string
+    Name      string
+    Nodes     map[string]*WorkflowNode
+    Edges     map[string][]string  // nodeID -> dependencies
+    StartNode string
+}
+
+type WorkflowNode struct {
+    ID        string
+    Type      NodeType  // Tool, Agent, Condition, Parallel, Subworkflow
+    Config    map[string]any
+    Condition string    // For conditional nodes
+}
+
+// Node Types
+const (
+    NodeTypeTool       NodeType = "tool"
+    NodeTypeAgent      NodeType = "agent"
+    NodeTypeCondition  NodeType = "condition"
+    NodeTypeParallel   NodeType = "parallel"
+    NodeTypeSubworkflow NodeType = "subworkflow"
+)
+```
+
+**Execution:**
+- Topological sort for dependency resolution
+- Parallel execution of independent nodes
+- Conditional branching
+- Subworkflow composition
+
+---
+
+## Agent Patterns
+
+### 1. Basic Agent (`agent.go`)
+**Simple conversational agent with:**
+- Stateful execution with history
+- Tool calling support
+- Memory integration
+- State persistence
+
+```go
+type Agent struct {
+    ID            string
+    Name          string
+    Description   string
+    SystemPrompt  string
+    Tools         []Tool
+    MaxIterations int
+    Temperature   float64
+    History       []Message
+}
+```
+
+**When to Use:** Simple Q&A, conversational interfaces, single-step tasks
+
+### 2. ReAct Agent (`react_agent.go`, `react_strategy.go`)
+**Iterative Reasoning + Acting Pattern:**
+
+**Core Loop:**
+```
+1. Thought: What should I do next?
+2. Action: Execute a tool or provide answer
+3. Observation: What was the result?
+4. Reflection: How well did that work? (periodic)
+... repeat until final answer
+```
+
+**Key Types:**
+```go
+type ReactAgent struct {
+    *Agent
+    strategy *ReactStrategy
+}
+
+type ReactStrategy struct {
+    maxIterations       int
+    reflectionInterval  int      // Reflect every N steps
+    confidenceThreshold float64  // Min confidence to continue
+    reflectionEngine    *ReflectionEngine
+    memoryManager       *MemoryManager
+}
+
+type ReasoningTrace struct {
+    Step        int
+    Thought     string
+    Action      string
+    Observation string
+    Reflection  string
+    Confidence  float64
+    Timestamp   time.Time
+    Metadata    map[string]any
+}
+```
+
+**Builder:**
+```go
+agent, _ := NewReactAgentBuilder("researcher").
+    WithModel("gpt-4").
+    WithTools(searchTool, calculatorTool).
+    WithLLMManager(llmManager).
+    WithMemoryManager(memoryManager).
+    WithMaxIterations(10).
+    WithReflectionInterval(3).
+    WithConfidenceThreshold(0.7).
+    Build()
+```
+
+**When to Use:** Research tasks, exploratory problems, multi-step reasoning, transparent decision-making
+
+### 3. Plan-Execute Agent (`plan_execute_agent.go`, `plan_execute_strategy.go`)
+**Structured Multi-Step Task Execution:**
+
+**Three Phases:**
+```
+1. PLAN: Decompose task into steps with dependencies
+2. EXECUTE: Run steps (parallel where possible)
+3. VERIFY: Check quality and correctness
+   └─> REPLAN: If needed, create improved plan
+```
+
+**Key Types:**
+```go
+type PlanExecuteAgent struct {
+    *Agent
+    strategy *PlanExecuteStrategy
+}
+
+type Plan struct {
+    ID           string
+    AgentID      string
+    Goal         string
+    Steps        []PlanStep
+    Status       PlanStatus
+    Version      int
+    ParentPlanID string  // For replans
+    CreatedAt    time.Time
+    UpdatedAt    time.Time
+}
+
+type PlanStep struct {
+    ID           string
+    Index        int
+    Description  string
+    ToolsNeeded  []string
+    Dependencies []string  // Step IDs that must complete first
+    Status       PlanStepStatus
+    Result       any
+    Error        string
+    Verification *VerificationResult
+    RetryCount   int
+    MaxRetries   int
+}
+
+type PlanStatus string
+const (
+    PlanStatusPending   PlanStatus = "pending"
+    PlanStatusRunning   PlanStatus = "running"
+    PlanStatusCompleted PlanStatus = "completed"
+    PlanStatusFailed    PlanStatus = "failed"
+)
+
+type PlanStepStatus string
+const (
+    PlanStepStatusPending   PlanStepStatus = "pending"
+    PlanStepStatusRunning   PlanStepStatus = "running"
+    PlanStepStatusCompleted PlanStepStatus = "completed"
+    PlanStepStatusFailed    PlanStepStatus = "failed"
+    PlanStepStatusSkipped   PlanStepStatus = "skipped"
+)
+```
+
+**Builder:**
+```go
+agent, _ := NewPlanExecuteAgentBuilder("project_manager").
+    WithModel("gpt-4").
+    WithTools(fileTool, dbTool, apiTool).
+    WithLLMManager(llmManager).
+    WithPlanStore(planStore).
+    WithMemoryManager(memoryManager).
+    WithAllowReplanning(true).
+    WithVerifySteps(true).
+    WithMaxReplanAttempts(3).
+    WithTimeout(30 * time.Minute).
+    Build()
+```
+
+**When to Use:** Complex projects, multi-step workflows, tasks requiring verification, progress tracking needs
+
+---
+
+## Advanced Features
+
+### 1. Reflection System (`reflection.go`)
+**Self-Evaluation of Reasoning Quality:**
+
+```go
+type ReflectionEngine struct {
+    llmManager       LLMManager
+    qualityThreshold float64
+    criteria         []ReflectionCriterion
+}
+
+type ReflectionResult struct {
+    Quality       string   // "good", "needs_improvement", "invalid"
+    Score         float64  // 0-1
+    Issues        []string
+    Suggestions   []string
+    ShouldReplan  bool
+    Reasoning     string
+    Timestamp     time.Time
+}
+
+type ReflectionCriterion struct {
+    Name        string   // e.g., "Logical Coherence"
+    Description string
+    Weight      float64  // 0-1, importance
+}
+```
+
+**Operations:**
+- `EvaluateStep(ctx, step, history)`: Evaluate single reasoning step
+- `EvaluatePlan(ctx, plan)`: Evaluate entire plan
+
+**Used By:** ReAct agents (periodic), Plan-Execute agents (before replanning)
+
+### 2. Replanning Engine (`replan_engine.go`)
+**Intelligent Plan Improvement:**
+
+```go
+type ReplanEngine struct {
+    plannerLLM        LLMManager
+    reflectionEngine  *ReflectionEngine
+    memoryManager     *MemoryManager
+    triggers          []ReplanTrigger
+    maxReplanAttempts int
+    failurePatterns   map[string]int
+}
+
+type ReplanTrigger struct {
+    Name        string
+    Description string
+    Condition   func(*Plan, *ReflectionResult) bool
+    Priority    int
+}
+```
+
+**Features:**
+- Automatic trigger evaluation
+- Failure pattern learning
+- Context-aware plan generation
+- Preserves completed steps
+
+**Operations:**
+- `ShouldReplan(ctx, plan, reflection)`: Check if replanning needed
+- `Replan(ctx, originalPlan, failureContext)`: Generate improved plan
+- `LearnFromFailure(ctx, plan, context)`: Store failure patterns
+
+### 3. Plan Verification (`plan_verification.go`)
+**Quality Assurance for Plans:**
+
+```go
+type PlanVerifier struct {
+    verifierLLM      LLMManager
+    qualityThreshold float64
+    structuralChecks bool
+    semanticChecks   bool
+}
+
+type VerificationResult struct {
+    IsValid     bool
+    Score       float64
+    Issues      []string
+    Suggestions []string
+    Reasoning   string
+    Timestamp   time.Time
+}
+```
+
+**Two Levels:**
+- **Structural**: Dependencies, cycles, completeness
+- **Semantic**: Quality, feasibility, clarity
+
+**Operations:**
+- `VerifyStep(ctx, step, expectedOutcome)`: Verify step output
+- `VerifyPlan(ctx, plan)`: Verify entire plan structure and quality
+
+### 4. Memory Integration (`memory_integration.go`)
+**Helpers for Agent Memory:**
+
+```go
+// Store reasoning traces
+StoreReasoningTrace(ctx, mm, trace) -> *MemoryEntry
+
+// Recall similar traces
+RecallReasoningTraces(ctx, mm, query, limit) -> []*ReasoningTrace
+
+// Store plans
+StorePlan(ctx, mm, plan) -> *MemoryEntry
+
+// Recall similar plans
+RecallPlans(ctx, mm, query, limit) -> []*Plan
+
+// Store reflections
+StoreReflectionResult(ctx, mm, reflection, agentID, executionID, stepIndex)
+
+// Store verifications
+StoreVerificationResult(ctx, mm, verification, agentID, planID, stepID)
+
+// Get execution context
+GetExecutionContext(ctx, mm, goal, agentID) -> *ExecutionContextBuilder
+```
+
+**Purpose:** Enable agents to learn from past executions and avoid repeated mistakes
+
+---
+
+## Key Interfaces
+
+### 1. LLMManager
+```go
+type LLMManager interface {
+    Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error)
+    Stream(ctx context.Context, req ChatRequest) (*StreamResponse, error)
+    GenerateEmbedding(ctx context.Context, text string) ([]float64, error)
+}
+```
+
+### 2. VectorStore
+```go
+type VectorStore interface {
+    Store(ctx context.Context, id string, embedding []float64, metadata map[string]any) error
+    Query(ctx context.Context, embedding []float64, limit int) ([]VectorResult, error)
+    Delete(ctx context.Context, id string) error
+}
+```
+
+### 3. StateStore
+```go
+type StateStore interface {
+    SaveState(ctx context.Context, agentID string, state map[string]any) error
+    LoadState(ctx context.Context, agentID string) (map[string]any, error)
+    DeleteState(ctx context.Context, agentID string) error
+}
+```
+
+### 4. PlanStore
+```go
+type PlanStore interface {
+    SavePlan(ctx context.Context, plan *Plan) error
+    LoadPlan(ctx context.Context, planID string) (*Plan, error)
+    ListPlans(ctx context.Context, agentID string) ([]*Plan, error)
+    DeletePlan(ctx context.Context, planID string) error
+}
+```
+
+### 5. EmbeddingModel
+```go
+type EmbeddingModel interface {
+    Embed(ctx context.Context, text string) ([]float64, error)
+    EmbedBatch(ctx context.Context, texts []string) ([][]float64, error)
+    Dimensions() int
+}
+```
+
+---
+
+## UI Generation System
+
+### Overview
+
+The SDK includes a comprehensive UI generation system that allows AI agents to create rich, interactive user interfaces. Instead of returning plain text, agents can generate structured responses with:
+- Tables, charts, metrics dashboards
+- Interactive forms and buttons
+- Timeline and kanban boards
+- Cards, alerts, progress indicators
+- Galleries, carousels, and more
+
+**Benefits:**
+- Type-safe Go structs for all UI components
+- Framework-agnostic JSON output (React, Vue, Angular, etc.)
+- Streaming support for progressive rendering
+- 12 built-in presentation tools for AI to call
+- 25+ ContentPart types for rich UIs
+
+### StructuredResponse Architecture
+
+```go
+type StructuredResponse struct {
+    ID          string            // Unique response ID
+    Parts       []ContentPart     // Ordered content parts
+    Artifacts   []Artifact        // Exportable content
+    Citations   []Citation        // Source references
+    Suggestions []Suggestion      // Follow-up actions
+    Metadata    ResponseMetadata  // Model, duration, tokens
+}
+
+type ContentPart interface {
+    Type() ContentPartType
+    ToJSON() ([]byte, error)
+}
+```
+
+### ContentPart Types
+
+**Base Types** (response.go):
+- `PartTypeText` - Plain or formatted text
+- `PartTypeMarkdown` - Markdown content
+- `PartTypeCode` - Syntax-highlighted code blocks
+- `PartTypeTable` - Tabular data with sorting/filtering
+- `PartTypeCard` - Contained content with actions
+- `PartTypeList` - Ordered/unordered/checkbox lists
+- `PartTypeImage` - Images with captions
+- `PartTypeThinking` - AI reasoning process
+- `PartTypeQuote` - Quotations and citations
+- `PartTypeDivider` - Visual separator
+- `PartTypeAlert` - Notifications (info/success/warning/error)
+- `PartTypeProgress` - Progress bars and indicators
+- `PartTypeChart` - Data visualizations (line, bar, pie, doughnut, area, scatter)
+- `PartTypeJSON` - Structured JSON display
+- `PartTypeCollapsible` - Expandable content
+
+**Advanced UI Types** (ui_parts.go):
+- `PartTypeButtonGroup` - Interactive action buttons
+- `PartTypeTimeline` - Chronological events
+- `PartTypeKanban` - Task board with draggable cards
+- `PartTypeMetric` - KPIs with trends and sparklines
+- `PartTypeForm` - Interactive forms with validation
+- `PartTypeTabs` - Tabbed content sections
+- `PartTypeAccordion` - Collapsible accordion
+- `PartTypeInlineCitation` - Inline source references
+- `PartTypeStats` - Compact statistics display
+- `PartTypeCarousel` - Sliding content carousel
+- `PartTypeGallery` - Image/media gallery
+
+### Presentation Tools (presentation_tools.go)
+
+**12 built-in tools AI can call to generate UI components:**
+
+1. **render_table** - Display tabular data
+   - Parameters: title, headers, rows, options (sortable, searchable, paginated)
+   - Use for: data grids, search results, database records, comparisons
+
+2. **render_chart** - Display data visualizations
+   - Parameters: title, type (line/bar/pie/doughnut/area/scatter), labels, datasets, options
+   - Use for: trends, distributions, comparisons, time series
+
+3. **render_metrics** - Display KPIs and dashboards
+   - Parameters: title, metrics (with trends, sparklines, targets), layout, columns
+   - Use for: business dashboards, analytics, performance monitoring
+
+4. **render_timeline** - Display chronological events
+   - Parameters: title, events (with timestamps, icons, status), orientation
+   - Use for: history, milestones, activity logs, order tracking
+
+5. **render_kanban** - Display task boards
+   - Parameters: title, columns (with cards, colors, limits), draggable
+   - Use for: task management, workflows, project boards, pipelines
+
+6. **render_buttons** - Display interactive buttons
+   - Parameters: title, buttons (with actions, variants, icons), layout
+   - Use for: action choices, navigation, quick replies, confirmations
+
+7. **render_form** - Display interactive forms
+   - Parameters: id, title, fields (with types, validation, options), submitLabel
+   - Use for: data entry, settings, filters, surveys, registration
+
+8. **render_card** - Display content cards
+   - Parameters: title, subtitle, content, icon, image, footer, actions
+   - Use for: highlights, summaries, profiles, featured content
+
+9. **render_stats** - Display compact statistics
+   - Parameters: title, stats (with changes, icons), layout
+   - Use for: quick overviews, summaries, key numbers
+
+10. **render_gallery** - Display image/media galleries
+    - Parameters: title, items (with thumbnails, descriptions), layout, columns
+    - Use for: photo collections, portfolios, product images
+
+11. **render_alert** - Display alerts and notifications
+    - Parameters: title, message, type (info/success/warning/error), dismissible, actions
+    - Use for: warnings, errors, success messages, important notices
+
+12. **render_progress** - Display progress indicators
+    - Parameters: label, value (0-100), max, showPercentage, variant
+    - Use for: completion status, loading, step-by-step progress
+
+### Using Presentation Tools
+
+```go
+// Get tool schemas for LLM
+schemas := sdk.GetPresentationToolSchemas()
+
+// Add to agent
+agent, _ := sdk.NewAgentBuilder().
+    WithTools(schemas...).
+    WithSystemPrompt(`Use presentation tools to visualize data:
+- render_table for structured data
+- render_chart for trends
+- render_metrics for KPIs
+- render_timeline for events
+- render_kanban for task boards`).
+    Build()
+
+// Execute tool manually
+result, _ := sdk.ExecutePresentationTool(ctx, "render_table", params, onEvent, executionID)
+```
+
+### ResponseBuilder API
+
+Fluent API for building structured responses:
+
+```go
+response := sdk.NewResponseBuilder().
+    WithMetadata("gpt-4", "openai", duration).
+    WithTokenUsage(inputTokens, outputTokens).
+    AddText("Analysis complete!").
+    AddMarkdown("## Summary\n...").
+    AddCode(code, "go").
+    AddTable(headers, rows).
+    AddChart(chartType, data).
+    AddDivider().
+    AddAlert("Success!", sdk.AlertSuccess).
+    AddThinking("Reasoning process...").
+    AddArtifact(artifact).
+    AddCitation(citation).
+    AddSuggestion(suggestion).
+    Build()
+
+// Convert to JSON for frontend
+jsonData, _ := response.ToJSON()
+plainText := response.ToPlainText()
+```
+
+### ResponseParser
+
+Parse raw LLM output into structured parts:
+
+```go
+parser := sdk.NewResponseParser()
+
+// Parses code blocks, tables, thinking tags, etc.
+parts := parser.Parse(llmOutput)
+
+// Enable UI block parsing
+parser.WithUIBlocks(true)
+```
+
+### UI Component Examples
+
+**ButtonGroup:**
+```go
+buttons := sdk.NewButtonGroupPart(
+    sdk.Button{
+        ID:      "approve",
+        Label:   "Approve",
+        Variant: sdk.ButtonPrimary,
+        Action:  sdk.ButtonAction{Type: sdk.ActionTypeTool, Value: "approve_request"},
+    },
+    sdk.Button{
+        ID:      "reject",
+        Label:   "Reject",
+        Variant: sdk.ButtonDanger,
+        Action:  sdk.ButtonAction{Type: sdk.ActionTypeTool, Value: "reject_request"},
+    },
+)
+```
+
+**Timeline:**
+```go
+timeline := sdk.NewTimelinePart(
+    sdk.TimelineEvent{
+        Title:       "Order Placed",
+        Description: "Order #12345 placed",
+        Timestamp:   time.Now(),
+        Icon:        "shopping-cart",
+        Status:      sdk.TimelineStatusCompleted,
+    },
+    sdk.TimelineEvent{
+        Title:       "Shipped",
+        Timestamp:   time.Now().Add(24 * time.Hour),
+        Status:      sdk.TimelineStatusInProgress,
+    },
+)
+```
+
+**Kanban:**
+```go
+kanban := sdk.NewKanbanPart(
+    sdk.KanbanColumn{
+        ID:    "todo",
+        Title: "To Do",
+        Cards: []sdk.KanbanCard{
+            {Title: "Task 1", Priority: "high"},
+            {Title: "Task 2", Priority: "medium"},
+        },
+    },
+    sdk.KanbanColumn{
+        ID:    "in_progress",
+        Title: "In Progress",
+        Cards: []sdk.KanbanCard{
+            {Title: "Task 3", Progress: 60.0},
+        },
+    },
+)
+```
+
+**Metrics:**
+```go
+metrics := sdk.NewMetricPart(
+    sdk.Metric{
+        Label:          "Revenue",
+        Value:          125000,
+        FormattedValue: "$125,000",
+        Icon:           "dollar-sign",
+        Trend: &sdk.MetricTrend{
+            Direction:  sdk.TrendUp,
+            Percentage: 12.5,
+        },
+        Status: sdk.MetricStatusGood,
+    },
+)
+```
+
+**Form:**
+```go
+form := sdk.NewFormPart("registration",
+    sdk.FormField{
+        Name:        "email",
+        Label:       "Email Address",
+        Type:        sdk.FieldTypeEmail,
+        Required:    true,
+        Placeholder: "you@example.com",
+    },
+    sdk.FormField{
+        Name:     "role",
+        Label:    "Role",
+        Type:     sdk.FieldTypeSelect,
+        Options:  []sdk.FormFieldOption{
+            {Value: "admin", Label: "Administrator"},
+            {Value: "user", Label: "Regular User"},
+        },
+    },
+)
+```
+
+### Streaming UI
+
+Progressive rendering of complex UIs:
+
+```go
+streamer := sdk.NewUIPartStreamer(sdk.UIPartStreamerConfig{
+    PartType:    sdk.PartTypeTable,
+    ExecutionID: executionID,
+    OnEvent:     onEvent,
+})
+
+streamer.Start()
+streamer.StreamSection("title", "Sales Data")
+streamer.StreamHeader(headers)
+
+// Stream rows in batches
+for _, batch := range rowBatches {
+    streamer.StreamRows(batch)
+}
+
+streamer.End()
+```
+
+### Frontend Integration
+
+**React Example:**
+```typescript
+function ContentPartRenderer({ part }: { part: ContentPart }) {
+  switch (part.type) {
+    case 'table': return <TableComponent {...part} />;
+    case 'chart': return <ChartComponent {...part} />;
+    case 'button_group': return <ButtonGroup {...part} />;
+    case 'timeline': return <Timeline {...part} />;
+    case 'kanban': return <KanbanBoard {...part} />;
+    case 'metric': return <MetricsDashboard {...part} />;
+    case 'form': return <DynamicForm {...part} />;
+    default: return <div>Unsupported: {part.type}</div>;
+  }
+}
+```
+
+### Best Practices for UI Generation
+
+1. **Choose Appropriate Components**: Use tables for data, charts for trends, metrics for KPIs
+2. **Progressive Disclosure**: Use accordions/tabs for large content
+3. **Actionable UIs**: Provide buttons for next actions
+4. **Stream Large Data**: Use streaming for tables > 100 rows
+5. **Consistent Styling**: Use defined variants and colors
+6. **Accessibility**: Include labels, tooltips, alt text
+7. **Mobile-Friendly**: Use responsive layouts and columns
+
+### UI Generation Decision Guide
+
+**Use render_table when:**
+- Displaying structured data with rows/columns
+- Showing database records or search results
+- Need sorting, filtering, or pagination
+
+**Use render_chart when:**
+- Visualizing trends over time
+- Comparing multiple datasets
+- Showing distributions or proportions
+
+**Use render_metrics when:**
+- Displaying KPIs and dashboards
+- Showing trends and sparklines
+- Monitoring performance metrics
+
+**Use render_timeline when:**
+- Showing chronological events
+- Tracking order/project status
+- Displaying activity logs
+
+**Use render_kanban when:**
+- Managing tasks across stages
+- Visualizing workflows
+- Showing project boards
+
+**Use render_buttons when:**
+- Presenting action choices
+- Providing quick replies
+- Offering navigation options
+
+**Use render_form when:**
+- Collecting user input
+- Building settings interfaces
+- Creating search filters
+
+---
+
+## Structured Output
+
+### Type-Safe Object Generation
+```go
+type Person struct {
+    Name    string   `json:"name" description:"Full name"`
+    Age     int      `json:"age" description:"Age in years"`
+    Hobbies []string `json:"hobbies"`
+}
+
+result, _ := NewGenerateObjectBuilder[Person](ctx, llmManager, logger, metrics).
+    WithProvider("openai").
+    WithModel("gpt-4").
+    WithPrompt("Extract person info: John Doe, 30, loves reading").
+    WithValidator(func(p *Person) error {
+        if p.Age < 0 || p.Age > 150 {
+            return fmt.Errorf("invalid age")
+        }
+        return nil
+    }).
+    Execute()
+
+// result is *Person with type safety
+```
+
+### Streaming Objects
+```go
+stream := NewStreamObjectBuilder[Person](ctx, llmManager, logger, metrics).
+    WithPrompt("Extract person info...").
+    OnPartial(func(partial *Person) {
+        fmt.Printf("Partial: %+v\n", partial)
+    }).
+    OnComplete(func(final *Person) {
+        fmt.Printf("Complete: %+v\n", final)
+    }).
+    Stream()
+```
+
+---
+
+## UI Output System
+
+### ContentPart Interface
+```go
+type ContentPart interface {
+    Type() ContentPartType
+    Content() map[string]any
+    Metadata() map[string]any
+}
+
+type ContentPartType string
+const (
+    PartTypeText         ContentPartType = "text"
+    PartTypeThinking     ContentPartType = "thinking"
+    PartTypeImage        ContentPartType = "image"
+    PartTypeTimeline     ContentPartType = "timeline"
+    PartTypeKanban       ContentPartType = "kanban"
+    PartTypeButtonGroup  ContentPartType = "button_group"
+    PartTypeForm         ContentPartType = "form"
+    PartTypeTable        ContentPartType = "table"
+)
+```
+
+### Structured Response
+```go
+type StructuredResponse struct {
+    Parts    []ContentPart
+    Metadata map[string]any
+    Cost     float64
+}
+
+// Create UI response
+response := &StructuredResponse{
+    Parts: []ContentPart{
+        NewTextPart("Here's the plan:"),
+        NewTimelinePart(steps),
+        NewButtonGroupPart(actions),
+    },
+}
+```
+
+---
+
+## Cost Management
+
+### Cost Tracker
+```go
+type CostTracker struct {
+    records        []UsageRecord
+    budgets        map[string]*Budget
+    optimizations  []OptimizationRule
+}
+
+type UsageRecord struct {
+    Provider     string
+    Model        string
+    InputTokens  int
+    OutputTokens int
+    Cost         float64
+    Timestamp    time.Time
+}
+
+type Budget struct {
+    Name           string
+    Limit          float64
+    Period         time.Duration
+    AlertThreshold float64
+    Current        float64
+}
+
+// Usage
+tracker := NewCostTracker(logger, metrics, opts)
+tracker.SetBudget("monthly", 1000.0, 30*24*time.Hour, 0.8)
+tracker.RecordUsage(ctx, record)
+insights := tracker.GetInsights()
+recommendations := tracker.GetOptimizationRecommendations()
+```
+
+---
+
+## Guardrails
+
+### Native Safety Checks
+```go
+type GuardrailManager struct {
+    enablePII             bool
+    enableToxicity        bool
+    enablePromptInjection bool
+    enableContentFilter   bool
+    maxInputLength        int
+    patterns              map[string]*regexp.Regexp
+}
+
+// Usage
+guardrails := NewGuardrailManager(logger, metrics, &GuardrailOptions{
+    EnablePII:             true,
+    EnableToxicity:        true,
+    EnablePromptInjection: true,
+    MaxInputLength:        10000,
+})
+
+violations, _ := guardrails.ValidateInput(ctx, userInput)
+if ShouldBlock(violations) {
+    return fmt.Errorf("input blocked: %s", FormatViolations(violations))
+}
+
+clean := guardrails.RedactPII(text)
+```
+
+**Detection Methods:**
+- PII: Regex patterns for email, phone, SSN, credit cards
+- Toxicity: Keyword-based detection
+- Injection: Pattern matching for common attacks
+- Content: Configurable rules
+
+**Trade-offs:**
+- ✅ Sub-millisecond latency
+- ✅ Zero cost, no API calls
+- ✅ Offline-capable
+- ❌ Pattern-based (not ML)
+- ❌ Primarily English
+
+---
+
+## Resilience Patterns
+
+### Circuit Breaker
+```go
+cb := NewCircuitBreaker(CircuitBreakerConfig{
+    Name:         "llm_api",
+    MaxFailures:  5,
+    ResetTimeout: 60 * time.Second,
+}, logger, metrics)
+
+err := cb.Execute(ctx, func(ctx context.Context) error {
+    return callLLM(ctx)
+})
+```
+
+### Retry with Backoff
+```go
+err := Retry(ctx, RetryConfig{
+    MaxAttempts:  3,
+    InitialDelay: 100 * time.Millisecond,
+    MaxDelay:     5 * time.Second,
+    Multiplier:   2.0,
+    Jitter:       true,
+}, logger, func(ctx context.Context) error {
+    return unreliableOperation(ctx)
+})
+```
+
+### Rate Limiter
+```go
+limiter := NewRateLimiter("api_calls", 10, 20, logger, metrics) // 10/sec, burst 20
+if limiter.Allow() {
+    callAPI()
+}
+// or
+limiter.Wait(ctx)
+```
+
+### Fallback Chain
+```go
+fallback := NewFallbackChain("generation", logger, metrics)
+err := fallback.Execute(ctx,
+    func(ctx context.Context) error { return tryPrimaryModel(ctx) },
+    func(ctx context.Context) error { return trySecondaryModel(ctx) },
+    func(ctx context.Context) error { return useCachedResponse(ctx) },
+)
+```
+
+---
+
+## Observability
+
+### Distributed Tracing
+```go
+tracer := NewTracer(logger, metrics)
+span := tracer.StartSpan(ctx, "generate_response")
+span.SetTag("model", "gpt-4")
+defer span.Finish()
+
+ctx = ContextWithSpan(ctx, span)
+span.LogEvent("info", "Processing", map[string]interface{}{"tokens": 1000})
+```
+
+### Performance Profiling
+```go
+profiler := NewProfiler(logger, metrics)
+session := profiler.StartProfile("llm_call")
+// ... do work ...
+session.End()
+
+profile := profiler.GetProfile("llm_call")
+fmt.Printf("Avg: %v, P95: %v, P99: %v\n", 
+    profile.AvgTime, profile.Percentiles[95], profile.Percentiles[99])
+```
+
+### Health Checks
+```go
+healthChecker := NewHealthChecker(logger)
+healthChecker.RegisterCheck("llm_api", func(ctx context.Context) error {
+    return pingLLMAPI(ctx)
+})
+
+status := healthChecker.GetOverallHealth(ctx)
+// "healthy", "degraded", or "unhealthy"
+```
+
+---
+
+## Testing
+
+### Test Helpers (`testhelpers/`)
+```go
+// Mock LLM Manager
+mockLLM := testhelpers.NewMockLLMManager()
+mockLLM.SetResponse("Hello, world!")
+
+// Mock Vector Store
+mockVS := testhelpers.NewMockVectorStore()
+
+// Mock State Store
+mockState := testhelpers.NewMockStateStore()
+
+// Test logger (silent or verbose)
+logger := testhelpers.NewTestLogger(t, verbose)
+
+// Test metrics (in-memory)
+metrics := testhelpers.NewTestMetrics()
+```
+
+### Test Patterns
+```go
+// Table-driven tests
+func TestAgent_Execute(t *testing.T) {
+    tests := []struct {
+        name    string
+        input   string
+        want    string
+        wantErr bool
+    }{
+        {"simple query", "Hello", "Hi there", false},
+        {"with tools", "Calculate 2+2", "4", false},
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // test implementation
+        })
+    }
+}
+```
+
+---
+
+## Integrations (`integrations/`)
+
+### Vector Stores
+- **pgvector**: PostgreSQL with pgvector extension
+- **Qdrant**: High-performance vector database
+- **Pinecone**: Managed vector database
+- **Weaviate**: Vector database with GraphQL
+- **ChromaDB**: Open-source embedding database
+- **Memory**: In-memory store for testing
+
+### State & Cache Stores
+- **PostgreSQL**: JSONB-based state storage
+- **Redis**: Distributed state and cache
+- **Memory**: In-memory store for testing
+
+### Embeddings
+- **OpenAI**: text-embedding-3-small/large
+- **Cohere**: embed-english-v3.0
+- **Ollama**: Local embedding models
+
+**Usage:**
+```go
+import (
+    "github.com/xraph/ai-sdk/integrations/vectorstores/pgvector"
+    "github.com/xraph/ai-sdk/integrations/embeddings/openai"
+)
+
+vectorStore, _ := pgvector.NewPgVectorStore(ctx, pgvector.Config{
+    ConnString: "postgres://localhost/mydb",
+    Dimensions: 1536,
+})
+
+embedder, _ := openai.NewOpenAIEmbeddings(openai.Config{
+    APIKey: os.Getenv("OPENAI_API_KEY"),
+    Model:  "text-embedding-3-small",
+})
+```
+
+---
+
+## File Organization
+
+```
+ai-sdk/
+├── sdk.go                    # Main SDK entry point
+├── agent.go                  # Basic agent
+├── agent_primitives.go       # Agent core types
+├── agent_step.go            # Step tracking for agents
+├── react_agent.go           # ReAct pattern agent
+├── react_strategy.go        # ReAct execution strategy
+├── plan_execute_agent.go    # Plan-Execute pattern agent
+├── plan_execute_strategy.go # Plan-Execute execution strategy
+├── agent_strategy.go        # Strategy interface & types
+├── plan.go                  # Plan data structures
+├── plan_store.go           # Plan persistence interface
+├── reflection.go           # Reflection engine
+├── replan_engine.go        # Replanning engine
+├── plan_verification.go    # Plan verification system
+├── memory_integration.go   # Memory helpers for agents
+├── memory.go               # Multi-tier memory system
+├── rag.go                  # RAG pipeline
+├── tools.go                # Tool system
+├── toolchain.go            # Sequential tool execution
+├── workflow.go             # Workflow engine
+├── generate.go             # Text generation
+├── generate_object.go      # Structured object generation
+├── stream.go               # Streaming
+├── stream_object.go        # Streaming objects
+├── response.go             # Structured responses
+├── ui_parts.go             # UI content parts
+├── guardrails.go           # Safety guardrails
+├── cost.go                 # Cost tracking
+├── resilience.go           # Resilience patterns
+├── observability.go        # Tracing, profiling
+├── caching.go              # Semantic caching
+├── prompt_template.go      # Template management
+├── errors.go               # Error types
+├── llm/                    # LLM provider implementations
+│   ├── manager.go
+│   ├── openai.go
+│   ├── anthropic.go
+│   ├── google.go
+│   └── ...
+├── integrations/           # Production integrations
+│   ├── vectorstores/
+│   ├── statestores/
+│   └── embeddings/
+├── testhelpers/            # Test utilities
+├── examples/               # Usage examples
+└── docs/                   # Documentation
+    ├── AGENT_PATTERNS.md
+    ├── REACT_AGENTS.md
+    ├── PLAN_EXECUTE_AGENTS.md
+    └── REFLECTION_AND_REPLANNING.md
+```
+
+---
+
+## Common Patterns
+
+### 1. Builder Pattern
+All major components use builders:
+```go
+result, err := NewGenerateBuilder(ctx, llmManager, logger, metrics).
+    WithProvider("openai").
+    WithModel("gpt-4").
+    WithPrompt("Hello").
+    Execute()
+```
+
+### 2. Context Propagation
+Always pass `context.Context` as first parameter:
+```go
+func Execute(ctx context.Context, input string) (*Result, error)
+```
+
+### 3. Dependency Injection
+Components receive dependencies via constructors/builders:
+```go
+agent, _ := NewReactAgentBuilder("name").
+    WithLLMManager(llmManager).
+    WithMemoryManager(memoryManager).
+    Build()
+```
+
+### 4. Error Handling
+Return errors, don't panic (except for unrecoverable conditions):
+```go
+if err != nil {
+    return nil, fmt.Errorf("failed to execute: %w", err)
+}
+```
+
+### 5. Structured Logging
+Use structured logging with fields:
+```go
+logger.Info("Executing agent",
+    logger.String("agent_id", agent.ID),
+    logger.String("input", input),
+)
+```
+
+### 6. Metrics Emission
+Emit metrics for observability:
+```go
+metrics.Counter("agent.executions",
+    metrics.WithLabel("agent_id", agentID),
+    metrics.WithLabel("status", "success"),
+).Inc()
+
+metrics.Histogram("agent.execution_time").Observe(duration.Seconds())
+```
+
+---
+
+## Conventions
+
+### Naming
+- **Types**: PascalCase (e.g., `ReactAgent`, `PlanExecuteStrategy`)
+- **Functions**: camelCase (e.g., `executeStep`, `verifyPlan`)
+- **Constants**: PascalCase for types, SCREAMING_SNAKE for true constants
+- **Interfaces**: -er suffix when appropriate (e.g., `LLMManager`, `VectorStore`)
+
+### Package Structure
+- Core SDK in root package
+- Subpackages for major subsystems (`llm/`, `integrations/`)
+- Internal packages for implementation details (`internal/`)
+
+### Error Messages
+- Use `fmt.Errorf` with `%w` for wrapping
+- Add context at each layer
+- Start with lowercase (Go convention)
+
+### Documentation
+- All exported types/functions have godoc comments
+- Examples in `examples/` directory
+- Comprehensive docs in `docs/` folder
+
+---
+
+## Performance Characteristics
+
+### Throughput
+- **Basic Agent**: ~100-500 req/sec (depends on LLM latency)
+- **ReAct Agent**: ~20-50 req/sec (multiple LLM calls per execution)
+- **Plan-Execute**: ~5-20 req/sec (planning + execution + verification)
+
+### Latency (P50)
+- **Generate**: 2-5s (depends on LLM)
+- **ReAct**: 10-30s (5-10 iterations)
+- **Plan-Execute**: 20-60s (5-10 steps)
+
+### Memory Usage
+- Base SDK: ~50MB
+- With memory system: ~100-200MB (depends on working memory size)
+- With RAG: ~200-500MB (depends on index size)
+
+### Token Usage (Approximate)
+- **Basic Agent**: 1x baseline
+- **ReAct Agent**: 5-10x (multiple iterations + reflection)
+- **Plan-Execute**: 8-15x (planning + execution + verification + potential replanning)
+
+---
+
+## Agent Decision Guide
+
+### Choose Basic Agent When:
+- Single-step tasks
+- Conversational interfaces
+- Low latency required
+- Predictable behavior needed
+- Token cost is primary concern
+
+### Choose ReAct Agent When:
+- Multi-step reasoning needed
+- Solution path unclear
+- Research and exploration tasks
+- Reasoning transparency important
+- Iterative refinement beneficial
+- Learning from mistakes valuable
+
+### Choose Plan-Execute Agent When:
+- Complex multi-step projects
+- Clear goal but unclear steps
+- Dependencies between steps
+- Progress tracking needed
+- Quality verification required
+- Parallel execution possible
+- Automatic recovery from failures important
+
+---
+
+## Quick Reference
+
+### Create Basic Agent
+```go
+agent, _ := NewAgentBuilder().
+    WithName("assistant").
+    WithModel("gpt-4").
+    WithTools(tools...).
+    WithLLMManager(llmManager).
+    Build()
+```
+
+### Create ReAct Agent
+```go
+agent, _ := NewReactAgentBuilder("researcher").
+    WithModel("gpt-4").
+    WithTools(tools...).
+    WithLLMManager(llmManager).
+    WithMemoryManager(memoryManager).
+    WithMaxIterations(10).
+    WithReflectionInterval(3).
+    Build()
+```
+
+### Create Plan-Execute Agent
+```go
+agent, _ := NewPlanExecuteAgentBuilder("manager").
+    WithModel("gpt-4").
+    WithTools(tools...).
+    WithLLMManager(llmManager).
+    WithPlanStore(planStore).
+    WithMemoryManager(memoryManager).
+    WithAllowReplanning(true).
+    WithVerifySteps(true).
+    Build()
+```
+
+### Generate Text
+```go
+result, _ := NewGenerateBuilder(ctx, llmManager, logger, metrics).
+    WithProvider("openai").
+    WithModel("gpt-4").
+    WithPrompt("Hello").
+    Execute()
+```
+
+### Generate Structured Object
+```go
+type Response struct {
+    Answer string `json:"answer"`
+}
+
+obj, _ := NewGenerateObjectBuilder[Response](ctx, llmManager, logger, metrics).
+    WithPrompt("What is 2+2?").
+    Execute()
+```
+
+### Setup RAG
+```go
+rag := NewRAG(embedder, vectorStore, logger, metrics, &RAGOptions{
+    ChunkSize: 500,
+    TopK:      5,
+})
+rag.IndexDocument(ctx, "doc1", content)
+result, _ := rag.GenerateWithContext(ctx, generator, query, 5)
+```
+
+### Register Tool
+```go
+registry := NewToolRegistry(logger, metrics)
+registry.RegisterFunc("search", "Search the web", 
+    func(ctx context.Context, query string) (any, error) {
+        return performSearch(query), nil
+    })
+```
+
+---
+
+## Best Practices for AI Agents Working with This Codebase
+
+### 1. Understanding Context
+- Read this llm.txt file first
+- Check relevant documentation in `docs/` folder
+- Look at examples in `examples/` directory
+- Review tests for usage patterns
+
+### 2. Making Changes
+- Follow existing patterns and conventions
+- Use builders for construction
+- Pass context.Context as first parameter
+- Return errors, don't panic
+- Add structured logging
+- Emit metrics for observability
+- Write tests (table-driven preferred)
+
+### 3. Adding Features
+- Check if similar functionality exists
+- Consider integration with memory system
+- Think about cost implications
+- Design for observability
+- Add configuration options via builders
+- Document with godoc comments
+
+### 4. Debugging
+- Check logs with structured fields
+- Review metrics for performance issues
+- Use distributed tracing for complex flows
+- Test with mock implementations
+- Verify with integration tests
+
+### 5. Performance
+- Consider token usage (especially for ReAct/Plan-Execute)
+- Use caching where appropriate
+- Enable parallel execution when possible
+- Profile before optimizing
+- Monitor with metrics
+
+---
+
+## Dependencies
+
+### Core (No External Dependencies)
+- Go 1.21+ standard library only
+
+### Optional (For Integrations)
+- `github.com/jackc/pgx/v5` - PostgreSQL driver
+- `github.com/redis/go-redis/v9` - Redis client
+- Various official SDKs for vector stores
+
+### Development
+- Standard Go testing tools
+- `golangci-lint` for linting
+
+---
+
+## Version & Status
+
+- **Version**: Alpha
+- **Test Coverage**: 81%+
+- **Production Readiness**: Suitable for evaluation and non-critical production use
+- **API Stability**: May change (alpha status)
+
+---
+
+## Support & Resources
+
+- **Documentation**: `docs/` folder and godoc comments
+- **Examples**: `examples/` directory
+- **Tests**: Throughout codebase (look for `*_test.go` files)
+- **README**: Comprehensive guide with comparisons and examples
+
+---
+
+This llm.txt file provides comprehensive context for AI agents to understand and work with the AI SDK codebase effectively. For specific implementation details, refer to the source code and documentation files.
+
