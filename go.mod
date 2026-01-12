@@ -5,10 +5,8 @@ go 1.25.0
 require (
 	github.com/google/uuid v1.6.0
 	github.com/xraph/forge v0.8.6
-	github.com/xraph/go-utils v0.0.4
+	github.com/xraph/go-utils v0.0.5
 )
-
-replace github.com/xraph/go-utils => ../go-utils
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
