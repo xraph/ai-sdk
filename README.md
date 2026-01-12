@@ -570,7 +570,7 @@ func buildProductionAgent() *sdk.Agent {
 | **Observability** | ⚠️ Callbacks | ✅ LangSmith integration | ⚠️ Callbacks | **✅ Native tracing + metrics** |
 | **Caching** | ✅ Provider-level | ⚠️ Via Redis | ⚠️ Via Redis | **✅ Semantic + Provider** |
 | **Provider Support** | ✅✅ 15+ providers | ✅✅ Many providers | ✅✅ 15+ providers | **✅ 5+ (extensible)** |
-| **Production Ready** | ✅ Battle-tested | ✅ Mature ecosystem | ✅ Growing | **✅ Enterprise features** |
+| **Production Ready** | ✅ Battle-tested | ✅ Mature ecosystem | ✅ Growing | **✅ Alpha** |
 | **Performance** | ⚠️ Node.js overhead | ⚠️ Python GIL | ⚠️ Node.js overhead | **✅✅ Native concurrency** |
 | **Best For** | Next.js apps | Python ML stack | JS/TS projects | **Go microservices** |
 
