@@ -549,20 +549,52 @@ func buildProductionAgent() *sdk.Agent {
 
 ## 🤝 Comparison
 
-| Feature | Vercel AI SDK | LangChain | **Forge AI SDK** |
-|---------|---------------|-----------|------------------|
-| Language | TypeScript | Python | **Go** |
-| Type Safety | ✅ | ❌ | **✅✅ (Generics)** |
-| Structured Output | Basic | Basic | **Advanced + Validation** |
-| Memory System | ❌ | Basic | **4-Tier** |
-| RAG | ❌ | ✅ | **✅✅ (Full Pipeline)** |
-| Cost Management | ❌ | ❌ | **✅** |
-| Guardrails | ❌ | ❌ | **✅** |
-| Workflow Engine | ❌ | ❌ | **✅ (DAG)** |
-| Tool Discovery | Manual | Manual | **Auto** |
-| A/B Testing | ❌ | ❌ | **✅** |
-| Resilience | Basic | ❌ | **Full Suite** |
-| Production Ready | ⚠️ | ⚠️ | **✅** |
+### Framework Comparison (2026)
+
+| Feature | Vercel AI SDK | LangChain (Python) | LangChain.js | **Forge AI SDK** |
+|---------|---------------|-------------------|--------------|------------------|
+| **Language** | TypeScript/JS | Python | TypeScript/JS | **Go** |
+| **Type Safety** | ✅ TypeScript | ⚠️ Type hints | ✅ TypeScript | **✅✅ Generics + Runtime** |
+| **Structured Output** | ✅ Zod schemas | ✅ Pydantic | ✅ Zod | **✅ Go structs + validation** |
+| **Streaming** | ✅ Text + Objects | ✅ Text | ✅ Text + Objects | **✅ Text + Objects + UI** |
+| **Memory System** | ⚠️ Basic conversation | ✅ Conversation buffer | ⚠️ Basic | **✅✅ 4-Tier + Episodic** |
+| **RAG Support** | ⚠️ Basic utilities | ✅✅ Full pipeline | ✅ Full pipeline | **✅✅ Chunking + Reranking** |
+| **Vector Stores** | ✅ Integrations | ✅✅ 50+ integrations | ✅ Many integrations | **✅ Pluggable interface** |
+| **Agents** | ⚠️ Basic tools | ✅✅ ReAct, Plan-Execute | ✅ ReAct agents | **✅ Stateful + Multi-agent** |
+| **Workflow Engine** | ❌ | ✅ LangGraph (DAG) | ✅ LangGraph | **✅ Native DAG engine** |
+| **Tool Calling** | ✅ Manual registration | ✅ Manual | ✅ Manual | **✅ Auto from Go funcs** |
+| **Cost Tracking** | ❌ | ⚠️ Token counting | ❌ | **✅ Budget + Optimization** |
+| **Guardrails** | ❌ | ⚠️ Via integrations | ❌ | **✅ Native PII/Toxicity** |
+| **A/B Testing** | ❌ | ❌ | ❌ | **✅ Prompt variants** |
+| **Resilience** | ⚠️ Basic retry | ⚠️ Basic | ⚠️ Basic retry | **✅✅ Circuit breaker + more** |
+| **Observability** | ⚠️ Callbacks | ✅ LangSmith integration | ⚠️ Callbacks | **✅ Native tracing + metrics** |
+| **Caching** | ✅ Provider-level | ⚠️ Via Redis | ⚠️ Via Redis | **✅ Semantic + Provider** |
+| **Provider Support** | ✅✅ 15+ providers | ✅✅ Many providers | ✅✅ 15+ providers | **✅ 5+ (extensible)** |
+| **Production Ready** | ✅ Battle-tested | ✅ Mature ecosystem | ✅ Growing | **✅ Enterprise features** |
+| **Performance** | ⚠️ Node.js overhead | ⚠️ Python GIL | ⚠️ Node.js overhead | **✅✅ Native concurrency** |
+| **Best For** | Next.js apps | Python ML stack | JS/TS projects | **Go microservices** |
+
+### Key Differentiators
+
+**Forge AI SDK (Go) excels at:**
+- ✅ **Native concurrency**: Goroutines for high-throughput production systems
+- ✅ **Type safety**: Compile-time guarantees with Go generics
+- ✅ **Enterprise features**: Built-in cost management, guardrails, and resilience patterns
+- ✅ **Low overhead**: Minimal memory footprint, fast startup times
+- ✅ **Single binary**: Easy deployment, no runtime dependencies
+
+**Vercel AI SDK excels at:**
+- ✅ Excellent TypeScript DX with React Server Components
+- ✅ Broad provider support with unified API
+- ✅ Strong streaming primitives for UI
+- ✅ Large community and ecosystem
+
+**LangChain excels at:**
+- ✅ Massive ecosystem with 100+ integrations
+- ✅ Mature RAG and agent patterns
+- ✅ LangGraph for complex workflows
+- ✅ LangSmith for production observability
+- ✅ Strong research and community support
 
 ---
 
