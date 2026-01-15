@@ -12,8 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xraph/forge"
-	"github.com/xraph/forge/extensions/ai/llm"
+	"github.com/xraph/ai-sdk/llm"
+	"github.com/xraph/go-utils/log"
+	"github.com/xraph/go-utils/metrics"
 )
 
 // OllamaProvider implements LLM provider for Ollama.
@@ -24,8 +25,8 @@ type OllamaProvider struct {
 	client  *http.Client
 	models  []string
 	usage   llm.LLMUsage
-	logger  forge.Logger
-	metrics forge.Metrics
+	logger  log.Logger
+	metrics metrics.Metrics
 	mu      sync.RWMutex
 	started bool
 }
@@ -36,8 +37,8 @@ type OllamaConfig struct {
 	Timeout    time.Duration `default:"120s"                   yaml:"timeout"` // Ollama can be slow on first load
 	MaxRetries int           `default:"2"                      yaml:"max_retries"`
 	Models     []string      `yaml:"models"` // Pre-configured model list
-	Logger     forge.Logger
-	Metrics    forge.Metrics
+	Logger     log.Logger
+	Metrics    metrics.Metrics
 }
 
 // ollamaChatRequest represents an Ollama chat request.
@@ -199,7 +200,7 @@ type ollamaVersionResponse struct {
 }
 
 // NewOllamaProvider creates a new Ollama provider.
-func NewOllamaProvider(config OllamaConfig, logger forge.Logger, metrics forge.Metrics) (*OllamaProvider, error) {
+func NewOllamaProvider(config OllamaConfig, logger log.Logger, metrics metrics.Metrics) (*OllamaProvider, error) {
 	if config.BaseURL == "" {
 		config.BaseURL = "http://localhost:11434"
 	}
@@ -231,14 +232,14 @@ func NewOllamaProvider(config OllamaConfig, logger forge.Logger, metrics forge.M
 		if models, err := provider.fetchModels(ctx); err == nil {
 			provider.models = models
 		} else if logger != nil {
-			logger.Warn("failed to fetch ollama models", forge.F("error", err.Error()))
+			logger.Warn("failed to fetch ollama models", log.String("error", err.Error()))
 		}
 	}
 
 	if logger != nil {
 		logger.Info("ollama provider initialized",
-			forge.F("base_url", provider.baseURL),
-			forge.F("models", provider.models))
+			log.String("base_url", provider.baseURL),
+			log.Strings("models", provider.models))
 	}
 
 	return provider, nil
@@ -384,7 +385,7 @@ func (p *OllamaProvider) ChatStream(ctx context.Context, request llm.ChatRequest
 		var chunk ollamaChatResponse
 		if err := json.Unmarshal(line, &chunk); err != nil {
 			if p.logger != nil {
-				p.logger.Warn("failed to parse streaming chunk", forge.F("error", err.Error()))
+				p.logger.Warn("failed to parse streaming chunk", log.String("error", err.Error()))
 			}
 
 			continue

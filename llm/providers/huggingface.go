@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xraph/forge"
-	"github.com/xraph/forge/errors"
-	"github.com/xraph/forge/extensions/ai/llm"
+	"github.com/xraph/ai-sdk/llm"
+	"github.com/xraph/go-utils/errs"
+	"github.com/xraph/go-utils/log"
+	"github.com/xraph/go-utils/metrics"
 )
 
 // HuggingFaceProvider implements LLM provider for Hugging Face.
@@ -24,8 +25,8 @@ type HuggingFaceProvider struct {
 	client    *http.Client
 	models    []string
 	usage     llm.LLMUsage
-	logger    forge.Logger
-	metrics   forge.Metrics
+	logger    log.Logger
+	metrics   metrics.Metrics
 	rateLimit *RateLimiter
 }
 
@@ -109,9 +110,9 @@ type hfUsage struct {
 }
 
 // NewHuggingFaceProvider creates a new Hugging Face provider.
-func NewHuggingFaceProvider(config HuggingFaceConfig, logger forge.Logger, metrics forge.Metrics) (*HuggingFaceProvider, error) {
+func NewHuggingFaceProvider(config HuggingFaceConfig, logger log.Logger, metrics metrics.Metrics) (*HuggingFaceProvider, error) {
 	if config.APIKey == "" {
-		return nil, errors.New("Hugging Face API key is required")
+		return nil, errs.New("Hugging Face API key is required")
 	}
 
 	if config.BaseURL == "" {
@@ -678,7 +679,7 @@ func (p *HuggingFaceProvider) checkRateLimit(ctx context.Context, model string) 
 
 	// Check request rate limit
 	if len(p.rateLimit.requestTokens) >= p.rateLimit.requestsPerMinute {
-		return errors.New("rate limit exceeded: too many requests per minute")
+		return errs.New("rate limit exceeded: too many requests per minute")
 	}
 
 	// Add current request
@@ -722,7 +723,7 @@ func (p *HuggingFaceProvider) IsModelSupported(model string) bool {
 // GetModelInfo returns information about a model.
 func (p *HuggingFaceProvider) GetModelInfo(model string) (map[string]any, error) {
 	if !p.IsModelSupported(model) {
-		return nil, fmt.Errorf("model %s is not supported", model)
+		return nil, errs.New(fmt.Sprintf("model %s is not supported", model))
 	}
 
 	info := map[string]any{

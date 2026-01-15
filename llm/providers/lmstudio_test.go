@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xraph/forge/extensions/ai/llm"
+	"github.com/xraph/ai-sdk/llm"
 )
 
 // TestNewLMStudioProvider tests provider creation.

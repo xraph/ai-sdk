@@ -12,8 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xraph/forge"
-	"github.com/xraph/forge/extensions/ai/llm"
+	"github.com/xraph/ai-sdk/llm"
+	"github.com/xraph/go-utils/log"
+	"github.com/xraph/go-utils/metrics"
 )
 
 // LMStudioProvider implements LLM provider for LMStudio.
@@ -25,8 +26,8 @@ type LMStudioProvider struct {
 	client  *http.Client
 	models  []string
 	usage   llm.LLMUsage
-	logger  forge.Logger
-	metrics forge.Metrics
+	logger  log.Logger
+	metrics metrics.Metrics
 	mu      sync.RWMutex
 	started bool
 }
@@ -38,8 +39,8 @@ type LMStudioConfig struct {
 	Timeout    time.Duration `default:"60s"                      yaml:"timeout"` // Local inference can be slow
 	MaxRetries int           `default:"2"                        yaml:"max_retries"`
 	Models     []string      `yaml:"models"` // Pre-configured model list
-	Logger     forge.Logger
-	Metrics    forge.Metrics
+	Logger     log.Logger
+	Metrics    metrics.Metrics
 }
 
 // lmstudioRequest represents a request to LMStudio API (OpenAI-compatible).
@@ -145,7 +146,7 @@ type lmstudioModelInfo struct {
 }
 
 // NewLMStudioProvider creates a new LMStudio provider.
-func NewLMStudioProvider(config LMStudioConfig, logger forge.Logger, metrics forge.Metrics) (*LMStudioProvider, error) {
+func NewLMStudioProvider(config LMStudioConfig, logger log.Logger, metrics metrics.Metrics) (*LMStudioProvider, error) {
 	if config.BaseURL == "" {
 		config.BaseURL = "http://localhost:1234/v1"
 	}
@@ -712,16 +713,16 @@ func (p *LMStudioProvider) updateUsageMetrics(tokens int, latency time.Duration,
 
 	// Update metrics
 	if p.metrics != nil {
-		p.metrics.Counter("forge.ai.llm.provider.requests_total", "provider", p.name).Inc()
+		p.metrics.Counter("forge.ai.llm.provider.requests_total", metrics.WithLabel("provider", p.name)).Inc()
 
 		if tokens > 0 {
-			p.metrics.Counter("forge.ai.llm.provider.tokens_total", "provider", p.name).Add(float64(tokens))
+			p.metrics.Counter("forge.ai.llm.provider.tokens_total", metrics.WithLabel("provider", p.name)).Add(float64(tokens))
 		}
 
-		p.metrics.Histogram("forge.ai.llm.provider.request_duration", "provider", p.name).Observe(latency.Seconds())
+		p.metrics.Histogram("forge.ai.llm.provider.request_duration", metrics.WithLabel("provider", p.name)).Observe(latency.Seconds())
 
 		if isError {
-			p.metrics.Counter("forge.ai.llm.provider.errors_total", "provider", p.name).Inc()
+			p.metrics.Counter("forge.ai.llm.provider.errors_total", metrics.WithLabel("provider", p.name)).Inc()
 		}
 	}
 }
@@ -869,8 +870,8 @@ func (p *LMStudioProvider) ChatStream(ctx context.Context, request llm.ChatReque
 				// Log error but continue processing
 				if p.logger != nil {
 					p.logger.Warn("Failed to parse stream chunk",
-						forge.F("error", err.Error()),
-						forge.F("data", data),
+						log.String("error", err.Error()),
+						log.String("data", data),
 					)
 				}
 

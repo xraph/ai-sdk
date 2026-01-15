@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/xraph/forge/extensions/ai/llm"
+	"github.com/xraph/ai-sdk/llm"
 )
 
 // Example: Basic Ollama Chat.

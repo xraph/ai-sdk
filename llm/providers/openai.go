@@ -12,9 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xraph/forge"
-	"github.com/xraph/forge/errors"
-	"github.com/xraph/forge/extensions/ai/llm"
+	"github.com/xraph/ai-sdk/llm"
+	"github.com/xraph/go-utils/errs"
+	"github.com/xraph/go-utils/log"
+	"github.com/xraph/go-utils/metrics"
 )
 
 // OpenAIProvider implements LLM provider for OpenAI.
@@ -26,8 +27,8 @@ type OpenAIProvider struct {
 	client    *http.Client
 	models    []string
 	usage     llm.LLMUsage
-	logger    forge.Logger
-	metrics   forge.Metrics
+	logger    log.Logger
+	metrics   metrics.Metrics
 	rateLimit *RateLimiter
 }
 
@@ -151,9 +152,9 @@ type openAIEmbedding struct {
 }
 
 // NewOpenAIProvider creates a new OpenAI provider.
-func NewOpenAIProvider(config OpenAIConfig, logger forge.Logger, metrics forge.Metrics) (*OpenAIProvider, error) {
+func NewOpenAIProvider(config OpenAIConfig, logger log.Logger, metrics metrics.Metrics) (*OpenAIProvider, error) {
 	if config.APIKey == "" {
-		return nil, errors.New("OpenAI API key is required")
+		return nil, errs.New("OpenAI API key is required")
 	}
 
 	if config.BaseURL == "" {
@@ -607,7 +608,7 @@ func (p *OpenAIProvider) checkRateLimit(ctx context.Context, model string) error
 
 	// Check request rate limit
 	if len(p.rateLimit.requestTokens) >= p.rateLimit.requestsPerMinute {
-		return errors.New("rate limit exceeded: too many requests per minute")
+		return errs.New("rate limit exceeded: too many requests per minute")
 	}
 
 	// Add current request
@@ -815,8 +816,8 @@ func (p *OpenAIProvider) ChatStream(ctx context.Context, request llm.ChatRequest
 				// Log error but continue processing
 				if p.logger != nil {
 					p.logger.Warn("Failed to parse stream chunk",
-						forge.F("error", err.Error()),
-						forge.F("data", data),
+						log.String("error", err.Error()),
+						log.String("data", data),
 					)
 				}
 
@@ -934,11 +935,11 @@ func (p *OpenAIProvider) updateStreamMetrics(tokens int, latency time.Duration, 
 
 	// Update metrics if available
 	if p.metrics != nil {
-		p.metrics.Counter("forge.ai.llm.provider.stream_requests_total", "provider", p.name).Inc()
-		p.metrics.Histogram("forge.ai.llm.provider.stream_duration", "provider", p.name).Observe(latency.Seconds())
+		p.metrics.Counter("forge.ai.llm.provider.stream_requests_total", metrics.WithLabel("provider", p.name)).Inc()
+		p.metrics.Histogram("forge.ai.llm.provider.stream_duration", metrics.WithLabel("provider", p.name)).Observe(latency.Seconds())
 
 		if isError {
-			p.metrics.Counter("forge.ai.llm.provider.stream_errors_total", "provider", p.name).Inc()
+			p.metrics.Counter("forge.ai.llm.provider.stream_errors_total", metrics.WithLabel("provider", p.name)).Inc()
 		}
 	}
 }
