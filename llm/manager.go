@@ -579,3 +579,18 @@ func (m *LLMManager) IsStarted() bool {
 
 	return m.started
 }
+
+// SupportsStreaming checks if a provider supports streaming.
+func (m *LLMManager) SupportsStreaming(providerName string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	provider, exists := m.providers[providerName]
+	if !exists {
+		return false
+	}
+
+	// Check if provider implements StreamingProvider interface
+	_, ok := provider.(StreamingProvider)
+	return ok
+}
