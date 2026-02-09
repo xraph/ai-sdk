@@ -13,7 +13,7 @@ type mockStreamingProvider struct {
 	name string
 }
 
-func (m *mockStreamingProvider) Name() string { return m.name }
+func (m *mockStreamingProvider) Name() string     { return m.name }
 func (m *mockStreamingProvider) Models() []string { return []string{"mock-model"} }
 func (m *mockStreamingProvider) Chat(ctx context.Context, request ChatRequest) (ChatResponse, error) {
 	return ChatResponse{}, nil
@@ -24,7 +24,7 @@ func (m *mockStreamingProvider) Complete(ctx context.Context, request Completion
 func (m *mockStreamingProvider) Embed(ctx context.Context, request EmbeddingRequest) (EmbeddingResponse, error) {
 	return EmbeddingResponse{}, nil
 }
-func (m *mockStreamingProvider) GetUsage() LLMUsage { return LLMUsage{} }
+func (m *mockStreamingProvider) GetUsage() LLMUsage                    { return LLMUsage{} }
 func (m *mockStreamingProvider) HealthCheck(ctx context.Context) error { return nil }
 func (m *mockStreamingProvider) ChatStream(ctx context.Context, request ChatRequest, handler func(ChatStreamEvent) error) error {
 	return nil
@@ -35,7 +35,7 @@ type mockBasicProvider struct {
 	name string
 }
 
-func (m *mockBasicProvider) Name() string { return m.name }
+func (m *mockBasicProvider) Name() string     { return m.name }
 func (m *mockBasicProvider) Models() []string { return []string{"mock-model"} }
 func (m *mockBasicProvider) Chat(ctx context.Context, request ChatRequest) (ChatResponse, error) {
 	return ChatResponse{}, nil
@@ -46,7 +46,7 @@ func (m *mockBasicProvider) Complete(ctx context.Context, request CompletionRequ
 func (m *mockBasicProvider) Embed(ctx context.Context, request EmbeddingRequest) (EmbeddingResponse, error) {
 	return EmbeddingResponse{}, nil
 }
-func (m *mockBasicProvider) GetUsage() LLMUsage       { return LLMUsage{} }
+func (m *mockBasicProvider) GetUsage() LLMUsage                    { return LLMUsage{} }
 func (m *mockBasicProvider) HealthCheck(ctx context.Context) error { return nil }
 
 func TestLLMManager_SupportsStreaming(t *testing.T) {
