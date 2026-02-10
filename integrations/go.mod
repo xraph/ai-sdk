@@ -1,6 +1,6 @@
 module github.com/xraph/ai-sdk/integrations
 
-go 1.25.5
+go 1.25.7
 
 require (
 	github.com/cohere-ai/cohere-go/v2 v2.16.1
