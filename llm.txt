@@ -1567,4 +1567,3 @@ registry.RegisterFunc("search", "Search the web",
 ---
 
 This llm.txt file provides comprehensive context for AI agents to understand and work with the AI SDK codebase effectively. For specific implementation details, refer to the source code and documentation files.
-
